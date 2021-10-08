@@ -1,0 +1,14 @@
+# Sample partial config file with 'filesystems' entries
+#
+
+filesystems:
+  local:
+    scheme: file
+
+  # a sample S3 filesystem (using MinIO)
+  s3test:
+    scheme: s3+http
+    host: localhost:9000
+    bucket: !env BUCKET
+    key: minioadmin
+    secret: minioadmin

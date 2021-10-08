@@ -1,0 +1,18 @@
+# Sample partial config file with 'datasets' entries
+#
+
+datasets:
+  group1:
+
+    # a local CSV
+    ds1:
+      uri: file:///tmp/foo.csv
+      format: csv
+
+    # a local CSV with options
+    ds2:
+      uri: file:///tmp/foo.csv
+      format:
+        kind: csv
+        sep: ","
+
