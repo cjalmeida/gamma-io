@@ -1,8 +1,9 @@
 from gamma.config.globalconfig import get_config
-from gamma.io.config import ConfigType
+
 from gamma.dispatch import Val, dispatch
-from pydantic import BaseModel
+
 from gamma.config import to_dict
+from .dataset import Dataset
 
 # Default source of filesystems info
 GammaConfigSource = Val["gamma-config"]
@@ -10,35 +11,6 @@ DEFAULT_SOURCE = GammaConfigSource
 
 # Config key to use when loading filesystems information
 CONFIG_KEY = "datasets"
-
-
-class DataFormat(ConfigType):
-    pass
-
-
-class Location(ConfigType):
-    @classmethod
-    def parse_string(cls, value: str):
-        # assume a URI string
-        return URI(uri=value)
-
-
-class URI(Location):
-    kind: str = "uri"
-    uri: str
-
-
-class Parquet(DataFormat):
-    kind: str = "parquet"
-
-
-class CSV(DataFormat):
-    kind: str = "csv"
-
-
-class Dataset(BaseModel):
-    location: Location
-    format: DataFormat
 
 
 @dispatch

@@ -2,8 +2,8 @@ from typing import Dict, Optional
 from copy import deepcopy
 from gamma.dispatch import Val, dispatch
 from pydantic import BaseModel
-from gamma.io.config import ConfigType
 import tempfile
+from gamma.config.pydantic import URIConfigStruct
 
 # Default source of filesystems info
 GammaConfigSource = Val["gamma-config"]
@@ -28,9 +28,9 @@ class FSMeta(BaseModel):
     cache: FSCacheMeta = FSCacheMeta()
 
 
-class FSConfig(ConfigType):
-    __discriminator__ = "scheme"
+class FSConfig(URIConfigStruct):
     scheme: str = "__unset__"
+    pass
 
 
 class FileSystems(BaseModel):
@@ -51,6 +51,7 @@ class S3FS(FSConfig):
     endpoint_url: Optional[str] = None
     key: Optional[str] = None
     secret: Optional[str] = None
+
 
 ####
 # methods

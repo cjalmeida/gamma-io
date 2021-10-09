@@ -6,13 +6,13 @@ datasets:
 
     # a local CSV
     ds1:
-      uri: file:///tmp/foo.csv
+      location: file:///tmp/foo.csv
       format: csv
 
     # a local CSV with options
     ds2:
-      uri: file:///tmp/foo.csv
+      location: file:///tmp/foo.csv
       format:
         kind: csv
-        sep: ","
+        sep: "\t"
 

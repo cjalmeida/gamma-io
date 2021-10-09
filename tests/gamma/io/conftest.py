@@ -6,8 +6,8 @@ import tempfile
 
 
 @pytest.fixture
-def fsconfig():
-    data = Path(__file__).parent / "config.yaml"
+def fsconfig(request):
+    data = Path(request.module.__file__).parent / "config.yaml"
     config = RootConfig("local", data)
     set_config(config)
     yield config
