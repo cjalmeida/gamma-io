@@ -4,6 +4,7 @@ from gamma.config.globalconfig import reset_config, set_config
 from pathlib import Path
 import tempfile
 
+
 @pytest.fixture
 def fsconfig():
     data = Path(__file__).parent / "config.yaml"

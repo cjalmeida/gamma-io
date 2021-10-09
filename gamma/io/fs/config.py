@@ -15,8 +15,6 @@ CONFIG_KEY = "filesystems"
 # Supported schemes
 FileScheme = Val["file"]
 S3Scheme = Val["s3"]
-S3_HTTP_Scheme = Val["s3+http"]
-S3_HTTPS_Scheme = Val["s3+https"]
 
 ####
 # config structure
@@ -50,19 +48,9 @@ class LocalFS(FSConfig):
 class S3FS(FSConfig):
     scheme: str = "s3"
     bucket: str
+    endpoint_url: Optional[str] = None
     key: Optional[str] = None
     secret: Optional[str] = None
-
-
-class S3_HTTP_FS(S3FS):
-    scheme: str = "s3+http"
-    host: str
-
-
-class S3_HTTPS_FS(S3FS):
-    scheme: str = "s3+https"
-    host: str
-
 
 ####
 # methods

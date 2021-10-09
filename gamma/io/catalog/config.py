@@ -1,6 +1,5 @@
 from gamma.config.globalconfig import get_config
 from gamma.io.config import ConfigType
-from pydantic.dataclasses import dataclass
 from gamma.dispatch import Val, dispatch
 from pydantic import BaseModel
 from gamma.config import to_dict

@@ -15,9 +15,10 @@ filesystems:
   local:
     scheme: file
 
-  # a sample S3 filesystem
-  my_bucket:
+  # a sample S3 filesystem pointing to MinIO
+  my_bucket_minio:
     scheme: s3
+    endpoint_url: http://localhost:9000/
     bucket: my-sample-bucket
     # you probably want those as dynamic variables such as !env
     key: my-key

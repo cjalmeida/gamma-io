@@ -7,8 +7,8 @@ filesystems:
 
   # a sample S3 filesystem (using MinIO)
   s3test:
-    scheme: s3+http
-    host: localhost:9000
-    bucket: !env BUCKET
+    scheme: s3
+    endpoint_url: http://localhost:9000/
+    bucket: !env BUCKET|dummy
     key: minioadmin
     secret: minioadmin

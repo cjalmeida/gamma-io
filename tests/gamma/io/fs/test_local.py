@@ -1,7 +1,5 @@
-from gamma.config import get_config
-from .fixtures import fsconfig, local_path
 from .common import common_ops
-from gamma.io.fs import get_fs_path, ops as fsop
+from gamma.io.fs import get_fs_path
 from pathlib import Path
 import tempfile
 
