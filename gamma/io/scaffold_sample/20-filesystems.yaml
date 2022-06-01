@@ -24,9 +24,22 @@ filesystems:
     key: my-key
     secret: my-secret
 
+# Specify connection information for non-fsspec based datasources
+datasources:
+  # SQL datasources accessible via SQLAlchemy core
+  sql:
+    # test in-memory SQLite
+    test_sqlite:
+      dialect: sqlite
+      # driver:       # driver for DB dialect
+      # username:
+      # password:
+      # host:         # defaults to "in-memory" (sqlite) or "localhost" (others)
+      # port:
+      # database:     # (optional) name of the database instance
+
 datasets:
   group1:
-
     # a local CSV
     ds1:
       location: file:///tmp/foo.csv
@@ -38,3 +51,21 @@ datasets:
       format:
         kind: csv
         sep: ","
+
+  group2:
+    foo1:
+      # use a SQL database from "datasources" above
+      location: sql://test_sqlite
+
+      # SQL support the "table" format for direct read/write/append from pandas dataframes
+      format:
+        kind: table
+        name: foo
+
+    foo2:
+      location: sql://test_sqlite
+
+      # The "query" format allows you a read-only view of a sql query
+      format:
+        kind: query
+        query: select * from foo

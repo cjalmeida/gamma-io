@@ -32,6 +32,7 @@ def get_fs_path(
 ) -> Tuple[AbstractFileSystem, str]:
 
     options = options or cfg.dict()
+    options.pop("uri", None)
     options.pop("scheme", None)
     options.pop("bucket", None)
     endpoint_url = options.pop("endpoint_url", None)

@@ -1,0 +1,4 @@
+gamma-config >=0.4
+fsspec
+jinja2
+pydantic
