@@ -14,9 +14,9 @@ import urllib.parse
 
 
 @dispatch
-def get_fs_path(uri: str, filesystems) -> Tuple[AbstractFileSystem, str]:
+def get_fs_path(uri: str, filesystems: FileSystems) -> Tuple[AbstractFileSystem, str]:
     """Split a FSSpec compatible URI into a `fsspec.AbstractFileSystem` and path
-    string"""
+    string."""
 
     fs_cfg = match_uri(uri, filesystems)
     return get_fs_path(uri, fs_cfg)
@@ -28,7 +28,7 @@ def get_fs_path(uri: str) -> Tuple[AbstractFileSystem, str]:
 
 
 @dispatch
-def get_fs_path(uri: str, cfg: LocalFS) -> Tuple[AbstractFileSystem, str]:
+def get_fs_path(uri: str, _: LocalFS) -> Tuple[AbstractFileSystem, str]:
     """Get fsspec FileSystem and path from a `file:` URLs"""
 
     if not uri.startswith("file:///"):
@@ -38,10 +38,6 @@ def get_fs_path(uri: str, cfg: LocalFS) -> Tuple[AbstractFileSystem, str]:
     fs = fsspec.filesystem(protocol="file")
     path = u.path.rstrip("/")
     return fs, path
-
-
-def get_options(cfg: FSConfig):
-    return cfg.dict()
 
 
 @dispatch
@@ -71,8 +67,8 @@ def match_uri(uri: str, filesystems: FileSystems) -> FSConfig:
 
 
 @dispatch
-def match_score(cfg, uri) -> int:
-    # fallback
+def match_score(cfg, uri) -> int:  # pragma: no cover
+    """Fallback score when no specialization is found."""
     return 0
 
 

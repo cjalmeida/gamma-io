@@ -21,12 +21,12 @@ def get_dataset_entry(group: str, name: str) -> Dataset:
 @dispatch
 def get_dataset_entry(_: GammaConfigSource, group: str, name: str) -> Dataset:
     datasets = get_config()[CONFIG_KEY]
-    if group not in datasets:
+    if group not in datasets:  # pragma: no cover
         raise KeyError(
             f"Missing '{group}' key in '{CONFIG_KEY}' configuration for datasets"
         )
 
-    if name not in datasets[group]:
+    if name not in datasets[group]:  # pragma: no cover
         raise KeyError(
             f"Missing '{name}' key in '[{CONFIG_KEY}][{group}]' configuration for "
             "datasets"

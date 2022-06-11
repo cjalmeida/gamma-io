@@ -1,4 +1,4 @@
-gamma-config >=0.4
+gamma-config >=0.5
 fsspec
 jinja2
 pydantic
