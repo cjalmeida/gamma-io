@@ -1,8 +1,0 @@
--c requirements.txt
-pip-tools
-black
-flake8
-pdbpp
-pytest
-pytest-cov
-s3fs
