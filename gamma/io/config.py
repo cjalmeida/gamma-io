@@ -26,4 +26,5 @@ def get_filesystems_config() -> dict:
     """
     from gamma.config import get_config, to_dict
 
-    return to_dict(get_config().get(FILESYSTEMS_CONFIG_KEY) or {})
+    config = get_config().get(FILESYSTEMS_CONFIG_KEY)
+    return to_dict(config) if config else {}

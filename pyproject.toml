@@ -5,7 +5,6 @@ description = "Helper library for interacting with datasets for DS projects"
 authors = [{ name = "Cloves Almeida", email = "almeida.cloves@bcg.com" }]
 dependencies = [
     "click>=8.1.6",
-    "gamma-config>=0.6.0",
     "tqdm>=4.65.0",
     "polars>=0.18.11",
     "pandas>=2.0.3",
@@ -34,6 +33,10 @@ dev = [
     "ruff>=0.0.282",
     "ipykernel>=6.25.0",
     "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "gamma-config>=0.7.0",
+    "pdbpp>=0.10.3",
+    "openpyxl>=3.1.2",
 ]
 
 [tool.isort]
@@ -46,3 +49,7 @@ ignore = ["F811"]
 
 [tool.ruff.pydocstyle]
 convention = "google"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode importlib --cov=gamma.io --cov-report term --cov-report xml:cov.xml"
+testpaths = "tests"

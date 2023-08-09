@@ -6,6 +6,9 @@ from urllib.parse import urlsplit
 import fsspec
 
 from ._types import Dataset
+from . import dispatch
+
+from plum import Val
 
 
 def get_fs_config(location: str) -> dict:
@@ -16,53 +19,35 @@ def get_fs_config(location: str) -> dict:
     return u, config
 
 
-def get_fs_path(*args) -> tuple[fsspec.AbstractFileSystem, str]:
-    """Return a `(filesystem, path)` tuple to be used with `fsspec` library.
+@dispatch
+def get_fs_path(proto, location) -> tuple[fsspec.AbstractFileSystem, str]:
+    raise ValueError(f"Protocol not yet supported: {proto}, at location {location}")
 
-    The actual implementation is protocol specific, so you need to refer to
-    `_get_fs_path_{proto}` methods.
 
-    Positional Arguments:
-        Dataset: a Dataset object
-        location (str): a location URL
-        proto (str), location (str): a protocol specific location URL
-
-    """
-    # avoid circular import
+@dispatch
+def get_fs_path(ds: Dataset):
     from ._core import get_dataset_location
 
-    match args:
-        case [Dataset() as ds]:
-            return get_fs_path(get_dataset_location(ds))
-
-        case [str() as location]:
-            # delegate to protocol specific implementation
-            _, fsconfig = get_fs_config(location)
-            proto = fsconfig["protocol"]
-            return get_fs_path(proto, location)
-
-        case [proto, location]:
-            # delegate to protocol specific implementation
-            try:
-                func = globals()[f"_get_fs_path_{proto}"]
-            except KeyError:
-                raise ValueError(
-                    f"Protocol not yet supported: {proto}, at location {location}"
-                )
-
-            return func(location)
-
-        case _:
-            raise ValueError(f"Can't get fs/path for args: {args}")
+    return get_fs_path(get_dataset_location(ds))
 
 
-def _get_fs_path_file(location: str):
+@dispatch
+def get_fs_path(location: str):
+    # delegate to protocol specific implementation
+    _, fsconfig = get_fs_config(location)
+    proto = fsconfig["protocol"]
+    return get_fs_path(Val[proto](), location)
+
+
+@dispatch
+def get_fs_path(proto: Val["file"], location: str):
     u, config = get_fs_config(location)
     path = Path(config.pop("path", "/"))
     lpath = path.absolute() / (u.hostname or "") / u.path.lstrip("/")
     return (fsspec.filesystem(**config), str(lpath))
 
 
-def _get_fs_path_https(location: str):
+@dispatch
+def get_fs_path(proto: Val["https"], location: str):
     u, config = get_fs_config(location)
     return (fsspec.filesystem(**config), location)

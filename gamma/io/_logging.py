@@ -39,7 +39,7 @@ def log_ds_read(func, *args):
 def log_ds_write(func, data, ds: Dataset):
     """Decorator to track dataset writes."""
     start = _pre_log(
-        f"Write dataset {ds.layer}.{ds.name} to '{get_dataset_location(ds)}'"
+        f"Writing dataset {ds.layer}.{ds.name} to '{get_dataset_location(ds)}'"
     )
     ret = func(data, ds)
     _post_log(start)

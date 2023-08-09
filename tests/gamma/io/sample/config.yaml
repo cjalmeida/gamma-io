@@ -1,0 +1,38 @@
+_workdir: !env IO_TEST_TMP
+
+datasets:
+  source:
+    customers_1k:
+      location: https://github.com/datablist/sample-csv-files/raw/main/files/customers/customers-1000.zip
+      format: csv
+      compression: zip
+
+    customers_1k_plain:
+      location: https://github.com/datablist/sample-csv-files/raw/main/files/customers/customers-1000.csv
+      format: csv
+
+  raw:
+    customers:
+      location: !j2 "file://{{ c._workdir }}/data/customers"
+      format: parquet
+      compression: snappy # for Spark compat
+      partition_by: [cluster]
+
+    customers_feather:
+      location: !j2 "file://{{ c._workdir }}/data/customers_feather"
+      format: feather
+      compression: zstd
+      partition_by: [cluster]
+
+    customers_csv:
+      location: !j2 "file://{{ c._workdir }}/data/customers.csv.gz"
+      format: csv
+      compression: gzip
+
+    customers_csv_plain:
+      location: !j2 "file://{{ c._workdir }}/data/customers.csv"
+      format: csv
+
+    customers_excel:
+      location: !j2 "file://{{ c._workdir }}/data/customers.xlsx"
+      format: excel

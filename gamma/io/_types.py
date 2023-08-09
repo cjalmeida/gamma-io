@@ -18,23 +18,30 @@ class PartitionException(DatasetException):
 class Dataset(BaseModel):
     """Structure for dataset entries."""
 
-    #: Dataset layer name
     layer: str
+    """Dataset layer name"""
 
-    #: Dataset name, unique in a layer
     name: str
+    """Dataset name, unique in a layer"""
 
-    #: URL representing the location of this library
+    protocol: str
+    """The dataset storage protocol. If not provided in declarative
+    configuration, it's inferred from location URL scheme."""
+
     location: str
+    """URL representing the location of this library"""
 
-    #: Path params interpolated in the location
-    path_params: Optional[dict] = {}
+    params: Optional[dict] = {}
+    """Params to be interpolated in the location URI. Provided on dataset instantiation."""
 
-    #: The dataset format
-    format: Optional[str] = "parquet"
+    format: str
+    """The dataset storage format."""
 
-    #: Args passed directly to the loader
-    args: Optional[dict] = {}
+    read_args: Optional[dict] = {}
+    """Extra arguments passed directly to the reader."""
+
+    write_args: Optional[dict] = {}
+    """Extra arguments passed directly to the writer."""
 
     #: Limit the columns to load for loaders that support this feature
     columns: Optional[list[str]] = None
@@ -45,8 +52,9 @@ class Dataset(BaseModel):
     #: Partition values
     partitions: Optional[dict] = {}
 
-    def __getitem__(self, item):
-        return getattr(self, item)
+    compression: Optional[str] = None
+    """Compression, if supported by the loader/format."""
 
-    def __contains__(self, key):
-        return hasattr(self, key)
+
+class ParquetDataset(Dataset):
+    pass
