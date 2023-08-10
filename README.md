@@ -44,7 +44,7 @@ pip install gamma-io gamma-config
 You can "scaffold" an initial configuration. In your project folder:
 
 ```bash
-   python -m gamma.config.scaffold
+python -m gamma.config.scaffold
 ```
 
 Remove the sample files, then create yourself a `config/20-datasets.yaml` file

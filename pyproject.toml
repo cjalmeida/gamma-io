@@ -1,7 +1,7 @@
 [project]
 name = "gamma-io"
 version = "0.1.0"
-description = "Helper library for interacting with datasets for DS projects"
+description = "Extensible library for interacting with datasets in data intensive projects"
 authors = [{ name = "Cloves Almeida", email = "almeida.cloves@bcg.com" }]
 dependencies = [
     "click>=8.1.6",
