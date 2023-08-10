@@ -4,7 +4,7 @@ import pytest
 
 
 def test_dataset_partition():
-    from gamma.io._core import _validate_partitions
+    from gamma.io._dataset import _validate_partitions
     from gamma.io import PartitionException
 
     base = dict(

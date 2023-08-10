@@ -1,18 +1,18 @@
 from typing import Literal
-import pandas as pd
-from . import dispatch
 
-from ._core import get_dataset
-from ._fs import get_fs_path
-from ._types import Dataset
+import pandas as pd
+
+from . import dispatch
 from ._arrow import (
     is_arrow_readable,
-    read_arrow_table,
     is_arrow_writeable,
+    read_arrow_table,
     write_arrow_table,
 )
-
+from ._dataset import get_dataset
+from ._fs import get_fs_path
 from ._logging import log_ds_read, log_ds_write
+from ._types import Dataset
 
 
 @dispatch
@@ -39,7 +39,6 @@ def read_pandas(ds: Dataset, fmt, protocol):
 
     We assume the storage to be `fsspec` stream compatible (ie. single file).
     """
-
     # get reader function based on format name
     func = getattr(pd, f"read_{fmt}", None)
     if func is None:
@@ -61,7 +60,6 @@ def _process_read_args(ds: Dataset):
 
     Currently `compression`, `columns` and `**read_args`
     """
-
     kwargs = {}
     if ds.compression:
         kwargs["compression"] = ds.compression
@@ -83,7 +81,6 @@ def write_pandas(df: pd.DataFrame, *args, **kwargs) -> None:
 @log_ds_write
 def write_pandas(df: pd.DataFrame, ds: Dataset) -> None:
     """Write a polars DataFrame to a dataset."""
-
     from pyarrow import Table
 
     # Delegate to pyarrow if supported
@@ -96,8 +93,7 @@ def write_pandas(df: pd.DataFrame, ds: Dataset) -> None:
 
 @dispatch
 def write_pandas(df: pd.DataFrame, ds: Dataset, fmt, protocol):
-    "We assume the storage to be `fsspec` stream compatible (ie. single file)."
-
+    """We assume the storage to be `fsspec` stream compatible (ie. single file)."""
     # get reader function based on format name
     func = getattr(pd.DataFrame, f"to_{fmt}", None)
     if func is None:
@@ -120,7 +116,6 @@ def process_write_args(ds: Dataset, fmt):
 
     Currently `compression`, `columns` and `**write_args`
     """
-
     kwargs = {}
     if ds.compression:
         kwargs["compression"] = ds.compression
@@ -138,7 +133,6 @@ def process_write_args(ds: Dataset, fmt: Literal["csv"]):
 
     Currently `compression`, `columns` and `**write_args`
     """
-
     kwargs = dict(index=False, compression=ds.compression, columns=ds.columns)
     kwargs.update(ds.write_args)
     return kwargs

@@ -5,7 +5,7 @@ import time
 
 from decorator import decorator
 
-from ._core import get_dataset_location
+from ._dataset import get_dataset_location
 from ._types import Dataset
 
 logger = logging.getLogger(__name__)

@@ -4,16 +4,16 @@
 import polars as pl
 
 from . import dispatch
-from ._core import get_dataset
-from ._fs import get_fs_path
-from ._logging import log_ds_read, log_ds_write
-from ._types import Dataset
 from ._arrow import (
     is_arrow_readable,
     is_arrow_writeable,
     read_arrow_table,
     write_arrow_table,
 )
+from ._dataset import get_dataset
+from ._fs import get_fs_path
+from ._logging import log_ds_read, log_ds_write
+from ._types import Dataset
 
 
 @dispatch
@@ -40,7 +40,6 @@ def read_polars(ds: Dataset, fmt, protocol):
 
     We assume the storage to be `fsspec` stream compatible (ie. single file).
     """
-
     # get reader function based on format name
     func = getattr(pl, f"read_{fmt}", None)
     if func is None:  # pragma: no cover
@@ -62,7 +61,6 @@ def _process_read_args(ds: Dataset):
 
     We parse `compression`, `columns` top-level args, and merge with `reader_args`
     """
-
     kwargs = {}
     if ds.compression:
         kwargs["compression"] = ds.compression
@@ -84,9 +82,6 @@ def write_polars(df: pl.DataFrame, *args, **kwargs) -> None:
 @log_ds_write
 def write_polars(df: pl.DataFrame, ds: Dataset) -> None:
     """Write a polars DataFrame to a dataset."""
-
-    from pyarrow import Table
-
     # Delegate to pyarrow if supported
     if is_arrow_writeable(ds):
         tb = df.to_arrow()
@@ -97,8 +92,7 @@ def write_polars(df: pl.DataFrame, ds: Dataset) -> None:
 
 @dispatch
 def write_polars(df: pl.DataFrame, ds: Dataset, fmt, protocol):
-    "We assume the storage to be `fsspec` stream compatible (ie. single file)."
-
+    """We assume the storage to be `fsspec` stream compatible (ie. single file)."""
     # get reader function based on format name
     func = getattr(pl.DataFrame, f"write_{fmt}", None)
     if func is None:
@@ -120,7 +114,6 @@ def _process_write_args(ds: Dataset):
 
     Currently `compression`, `columns` and `**write_args`
     """
-
     kwargs = {}
     if ds.compression:
         kwargs["compression"] = ds.compression

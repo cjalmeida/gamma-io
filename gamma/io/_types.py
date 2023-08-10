@@ -15,6 +15,10 @@ class PartitionException(DatasetException):
     """Raised on partition related errors."""
 
 
+class MissingDependencyException(Exception):
+    pass
+
+
 class Dataset(BaseModel):
     """Structure for dataset entries."""
 
@@ -32,7 +36,8 @@ class Dataset(BaseModel):
     """URL representing the location of this library"""
 
     params: Optional[dict] = {}
-    """Params to be interpolated in the location URI. Provided on dataset instantiation."""
+    """Params to be interpolated in the location URI. Provided on dataset 
+    instantiation."""
 
     format: str
     """The dataset storage format."""

@@ -1,10 +1,16 @@
-from typing import Literal
+"""Module adding support for reading/writing datasets as PyArrow Tables.
+
+This is a core dependency of Pandas and Polars modules when dealing with 
+Parquet or Feather/ArrowIPC datasets. It provides full support for "Hive" style 
+partitioning.
+"""
+
 import pyarrow as pa
 import pyarrow.dataset as pa_ds
 
 from . import dispatch
-from ._types import Dataset
 from ._fs import get_fs_path
+from ._types import Dataset
 
 
 def is_arrow_readable(ds: Dataset) -> bool:

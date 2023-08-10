@@ -1,5 +1,18 @@
 _workdir: !env IO_TEST_TMP
 
+# File-systems options
+filesystems:
+
+  # Options entry for 'test-bucket', you can have any name here
+  test_bucket:
+
+    # the regex to match against the location URL
+    match: "s3://test-bucket/.*"
+
+    # everything below here is returned as part of the options map
+    endpoint_url: http://localhost:4566
+
+
 datasets:
   source:
     customers_1k:
@@ -36,3 +49,9 @@ datasets:
     customers_excel:
       location: !j2 "file://{{ c._workdir }}/data/customers.xlsx"
       format: excel
+
+    customers_s3:
+      location: !j2 "s3://test-bucket/customers"
+      format: parquet
+      compression: snappy # for Spark compat
+      partition_by: [cluster]

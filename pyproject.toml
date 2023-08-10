@@ -6,7 +6,6 @@ authors = [{ name = "Cloves Almeida", email = "almeida.cloves@bcg.com" }]
 dependencies = [
     "click>=8.1.6",
     "tqdm>=4.65.0",
-    "polars>=0.18.11",
     "pandas>=2.0.3",
     "pyarrow>=12.0.1",
     "pydantic>=2.1.1",
@@ -19,6 +18,15 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
 
+[project.optional-dependencies]
+polars = ["polars>=0.18.13"]
+full = [
+    "polars>=0.18.13",
+    "gamma-config>=0.7.1",
+]
+aws = [
+    "s3fs>=2023.6.0",
+]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
@@ -37,6 +45,10 @@ dev = [
     "gamma-config>=0.7.0",
     "pdbpp>=0.10.3",
     "openpyxl>=3.1.2",
+    "polars>=0.18.13",
+    "localstack>=2.2.0",
+    "awscli-local>=0.21",
+    "s3fs>=2023.6.0",
 ]
 
 [tool.isort]
@@ -53,3 +65,7 @@ convention = "google"
 [tool.pytest.ini_options]
 addopts = "--import-mode importlib --cov=gamma.io --cov-report term --cov-report xml:cov.xml"
 testpaths = "tests"
+
+[tool.pdm.version]
+source = "file"
+path = "gamma/io/__version__.py"

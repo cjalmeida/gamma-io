@@ -1,14 +1,12 @@
-"""Main helper module for loading/writing data."""
+"""Module for manipulating Dataset objects."""
 
 
 import logging
-import tempfile
 from typing import Tuple
 from urllib.parse import urlsplit
 
 import fsspec
 
-from ._fs import get_fs_path
 from ._types import Dataset, PartitionException
 
 # type alias
@@ -68,7 +66,6 @@ def _parse_protocol(entry: dict) -> dict:
 
 def _validate_partitions(ds: Dataset) -> None:
     """Ensure we have no holes in the provided partitions."""
-
     matches = [part in ds.partitions for part in ds.partition_by]
 
     # iterating checking for invalid matches
