@@ -6,7 +6,7 @@ groups = ["default", "dev", "polars", "full", "aws"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:42d4b56c275733210d13ff4cf9115e995a4bb475ffc928be5c4a9d383a243f61"
+content_hash = "sha256:1888a5a2c15da3357c89ad69641e416072c25a556844f05b42589d316154c041"
 
 [[package]]
 name = "aiobotocore"

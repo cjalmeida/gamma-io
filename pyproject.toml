@@ -23,6 +23,7 @@ polars = ["polars>=0.18.13"]
 full = [
     "polars>=0.18.13",
     "gamma-config>=0.7.1",
+    "s3fs>=2023.6.0",
 ]
 aws = [
     "s3fs>=2023.6.0",
