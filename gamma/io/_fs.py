@@ -4,12 +4,12 @@ We rely heavily on `fsspec` for most operation. The main function `get_fs_path`"
 return a `(fs: FileSystem, path: str)` tuple.
 """
 
+import re
 from pathlib import Path
 from typing import Literal
-from urllib.parse import urlsplit, SplitResult
+from urllib.parse import SplitResult, urlsplit
 
 import fsspec
-import re
 
 from . import dispatch
 from ._types import Dataset
@@ -35,7 +35,6 @@ def get_fs_options(location: str) -> tuple[SplitResult, dict]:
         - The options dict always have the `protocol` entry, defaulting to the
           URL scheme of `location`.
     """
-
     u = urlsplit(location, "file")
     filesystems = get_filesystems_config()
 
@@ -62,7 +61,6 @@ def get_fs_options(location: str) -> tuple[SplitResult, dict]:
 @dispatch
 def get_fs_path(proto, location) -> FSPathType:
     """Fallback when a protocol has no specialization."""
-
     _, options = get_fs_options(location)
     protocol = options.pop("protocol")
 

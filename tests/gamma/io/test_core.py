@@ -1,11 +1,11 @@
-from gamma.io import Dataset, get_dataset
-
 import pytest
+
+from gamma.io import Dataset, get_dataset
 
 
 def test_dataset_partition():
-    from gamma.io._dataset import _validate_partitions
     from gamma.io import PartitionException
+    from gamma.io._dataset import _validate_partitions
 
     base = dict(
         layer="raw",

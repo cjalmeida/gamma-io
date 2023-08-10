@@ -1,12 +1,12 @@
 import logging
 import re
+import tempfile
 from itertools import cycle
 
 import pandas as pd
 import polars as pl
-import tempfile
 
-from gamma.io import get_dataset, get_fs_path, read_polars, write_polars, read_pandas
+from gamma.io import get_dataset, get_fs_path, read_pandas, read_polars, write_polars
 
 
 def test_read_write(io_config, caplog):
@@ -71,4 +71,3 @@ def test_read_write(io_config, caplog):
     df4 = read_polars(ds)
     assert fs.isfile(path)
     pd.testing.assert_frame_equal(df.to_pandas(), df4.to_pandas())
-

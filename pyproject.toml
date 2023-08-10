@@ -58,6 +58,7 @@ profile = "black"
 src = ["gamma"]
 select = ["E", "F", "D"]
 ignore = ["F811"]
+exclude = ["tests"]
 
 [tool.ruff.pydocstyle]
 convention = "google"

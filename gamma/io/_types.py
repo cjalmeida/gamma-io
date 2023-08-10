@@ -36,7 +36,7 @@ class Dataset(BaseModel):
     """URL representing the location of this library"""
 
     params: Optional[dict] = {}
-    """Params to be interpolated in the location URI. Provided on dataset 
+    """Params to be interpolated in the location URI. Provided on dataset
     instantiation."""
 
     format: str

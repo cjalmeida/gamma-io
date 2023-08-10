@@ -1,7 +1,7 @@
 """Module adding support for reading/writing datasets as PyArrow Tables.
 
-This is a core dependency of Pandas and Polars modules when dealing with 
-Parquet or Feather/ArrowIPC datasets. It provides full support for "Hive" style 
+This is a core dependency of Pandas and Polars modules when dealing with
+Parquet or Feather/ArrowIPC datasets. It provides full support for "Hive" style
 partitioning.
 """
 

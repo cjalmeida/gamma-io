@@ -1,10 +1,11 @@
-import subprocess
-import boto3
-import signal
 import logging
+import signal
+import subprocess
+
+import boto3
 import pytest
 
-from gamma.io import get_fs_path, get_dataset
+from gamma.io import get_dataset, get_fs_path
 
 logger = logging.getLogger(__name__)
 

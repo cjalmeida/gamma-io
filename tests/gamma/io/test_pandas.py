@@ -1,7 +1,8 @@
+import gzip
 import logging
 import re
 from itertools import cycle
-import gzip
+
 import pandas as pd
 
 from gamma.io import get_dataset, get_fs_path, read_pandas, write_pandas
