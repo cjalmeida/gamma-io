@@ -1,27 +1,26 @@
+# Configuration file used in tests
+
 _workdir: !env IO_TEST_TMP
 
 # File-systems options
 filesystems:
-
   # Options entry for 'test-bucket', you can have any name here
   test_bucket:
-
     # the regex to match against the location URL
     match: "s3://test-bucket/.*"
 
     # everything below here is returned as part of the options map
     endpoint_url: http://localhost:4566
 
-
 datasets:
   source:
     customers_1k:
-      location: https://github.com/datablist/sample-csv-files/raw/main/files/customers/customers-1000.zip
+      location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.zip
       format: csv
       compression: zip
 
     customers_1k_plain:
-      location: https://github.com/datablist/sample-csv-files/raw/main/files/customers/customers-1000.csv
+      location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.csv
       format: csv
 
   raw:

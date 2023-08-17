@@ -51,74 +51,76 @@ Remove the sample files, then create yourself a `config/20-datasets.yaml` file
 with the contents:
 
 ```yaml
-foo: 1
-user: !env USER
+datasets:
+  source:
+    customers_1k:
+      location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.zip
+      format: csv
+      compression: zip
+
+    customers_1k_plain:
+      location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.csv
+      format: csv
+
+  raw:
+    customers:
+      location: "file:///tmp/gamma-io/data/customers"
+      format: parquet
+      compression: snappy
+      partition_by: [cluster]
+
 ```
 
-To access the config from within your Python program:
+The file above provide two "layers": a `source` layer containing HTTPS remote
+`customers_1k` and `customers_1k_plain` datasets, and a `raw` layer, containing a
+`customers` dataset partitioned by the `cluster` column.
+
+In your code (or Jupyter Notebook) you can read these datasets as Pandas dataframe
+easily:
 
 ```python
-import os
-from gamma.config import get_config
+from gamma.io import read_pandas
 
-def run():
-
-    # it's safe and efficient to call this multiple times
-    config = get_config()
-
-    # get static value using the dict keys or attribute access
-    assert config["foo"] == 1
-    assert config.foo == 1
-
-    # get dynamic variables
-    assert config["user"] == os.getenv("USER")
-    assert config.user == os.getenv("USER")
+df = read_pandas("source", "customers_1k")
 ```
 
-Most of the magic happen via tags. Look at the documentation for info on the [built-in tags](tags) available.
+All details about dataset format and storage infrastructure is not cluttering the
+codebase. Now let's write the dataset as set of partitioned Parquet files:
 
-## Changelog
+```python
+from gamma.io import read_pandas, write_pandas
 
-### Breaking in 0.7
+# read it again
+df = read_pandas("source", "customers_1k")
 
--   We've **DEPRECATED** our homegrown multiple dispatch system `gamma.dispatch`,
-    replacing it by [`plum`][plum]. Unless you were using `gamma.dispatch` directly, or
-    extending via [custom tags][custom tags], no need to worry. The `gamma.dispatch`
-    package will be removed by release 1.0.
+# some transformation: let's add the cluster column to the dataset
+df["cluster"] = (df["Index"] % 3).astype(str)
 
-### New in 0.7
+# write to our dataset
+write_pandas(df, "raw", "customers")
+```
 
--   We have a new home in https://github.com/cjalmeida/gamma-config !
+You can see it generated the Parquet structured partitioned in the "Hive" format:
 
-### Breaking in 0.6
+```bash
+$ tree /tmp/gamma-io/data
 
--   Strict support for [YAML 1.2 Core Schema](https://yaml.org/spec/1.2.1/#id2804923).
-    In practice, unquoted ISO8610 dates (eg. `2022-12-20`) won't get converted
-    to `datetime.date` or `datetime.datetime` objects. Use `!date` or `!datetime`
-    if needed.
--   `.env` files are loaded automatically and get precedence over `config.env`
-    and `config.local.env`.
--   Use of `config.env` and `config.local.env` is deprecated.
--   Default scaffolded `include_folder` interpret `ENVIRONMENT` variable string like
-    `foo bar` as two separate environment subfolders.
--   (dispatch) `Val` arguments passed as class (eg. `foo(Val['bar'])`) will be converted
-    to instance, as if it were called `foo(Val['bar']())`
--   The `!py:<module>:<func>` will no longer a single `None` argument
+/tmp/gamma-io/data
+└── customers
+    ├── cluster=0
+    │   └── part-0.parquet
+    ├── cluster=1
+    │   └── part-0.parquet
+    └── cluster=2
+        └── part-0.parquet
 
-### New in 0.6
+```
 
--   Support for [YAML Anchors and Aliases](https://www.educative.io/blog/advanced-yaml-syntax-cheatsheet#anchors)
+## Configuring the filesystem
 
-### Breaking changes in 0.5
-
--   When using the dot (`.`) syntax, missing values raise `AttributeError` instead of returning
-    a false-y object.
--   Dropped support for Python 3.7
-
-### New in 0.5
-
--   We're now in PyPI!
--   Options for installing extra dependencies (eg. `jinja2`, `pydantic`)
+In the example above, the `location` configuration key points to where we can find the
+dataset. The underlying infrastructure is based on [fsspec][fsspec], so it supports
+many [filesystem-like implementations out of the box]().
 
 [gamma-config]: https://cjalmeida.github.io/gamma-config
 [fsspec]: https://filesystem-spec.readthedocs.io/en/latest/
