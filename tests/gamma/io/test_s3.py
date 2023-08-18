@@ -20,6 +20,7 @@ def localstack():
     logger.info("Check if localstack is running")
     cp = subprocess.run(["localstack", "wait", "-t", "5"], check=False)
 
+    proc = None
     if cp.returncode != 0:
         logger.info("Start the localstack process")
         proc = subprocess.Popen(["localstack", "start"], encoding="utf-8")
@@ -35,18 +36,23 @@ def localstack():
     yield dict(endpoint=endpoint, region=region)
 
     # shutdown localstack
-    proc.send_signal(signal.SIGINT)
-
-    # wait shutdown
     logger.info(f"Shutting down localstack.")
-    ret = proc.wait()
-    assert ret == 0, f"Localstack shutdown returned non-zero code: {ret}"
+    if proc:
+        proc.send_signal(signal.SIGINT)
+        ret = proc.wait()
+        assert ret == 0, f"Localstack shutdown returned non-zero code: {ret}"
 
 
 @pytest.fixture
 def bucket_test(localstack):
     bucket = "test-bucket"
-    args = dict(region_name=localstack["region"], endpoint_url=localstack["endpoint"])
+    args = dict(
+        region_name=localstack["region"],
+        endpoint_url=localstack["endpoint"],
+        aws_access_key_id="AKIAIOSFODNN7EXAMPLE",  # dummy keys
+        aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    )
+
     s3_client = boto3.client("s3", **args)
     s3_client.create_bucket(Bucket=bucket)
 
