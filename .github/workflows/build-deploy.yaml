@@ -25,13 +25,9 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Create venv
-        run: python -m venv .venv
-
       - name: install requirements
         run: |
           curl -sSL https://raw.githubusercontent.com/pdm-project/pdm/main/install-pdm.py | python3 -
-          . .venv/bin/activate
           pdm install -G full -dG test,publish
 
       - name: Build / run tests
