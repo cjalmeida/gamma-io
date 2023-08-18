@@ -38,7 +38,7 @@ the data storage layer.
 Using pip and assuming you're using the optional `gamma-config` integration:
 
 ```bash
-pip install gamma-io gamma-config
+pip install gamma-io gamma-config[jinja2]
 ```
 
 You can "scaffold" an initial configuration. In your project folder:
