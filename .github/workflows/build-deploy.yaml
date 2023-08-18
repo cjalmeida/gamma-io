@@ -41,6 +41,7 @@ jobs:
         run: |
           . .venv/bin/activate
           export PYTHONPATH=$PWD
+          git lfs checkout
           pytest
           pdm build
 
