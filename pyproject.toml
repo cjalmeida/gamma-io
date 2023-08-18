@@ -29,11 +29,21 @@ full = [
 ]
 aws = ["s3fs>=2023.6.0"]
 sql = ["sqlalchemy>=2.0.20"]
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [tool.pdm.dev-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "openpyxl>=3.1.2",
+    "localstack>=2.2.0",
+]
+
+publish = ["sqlalchemy-utils>=0.41.1", "twine>=4.0.2"]
+
 dev = [
     "pre-commit>=3.3.3",
     "black>=23.7.0",
