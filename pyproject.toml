@@ -40,9 +40,10 @@ test = [
     "pytest-cov>=4.1.0",
     "openpyxl>=3.1.2",
     "localstack>=2.2.0",
+    "sqlalchemy-utils>=0.41.1",
 ]
 
-publish = ["sqlalchemy-utils>=0.41.1", "twine>=4.0.2"]
+publish = ["twine>=4.0.2"]
 
 dev = [
     "pre-commit>=3.3.3",

@@ -32,7 +32,7 @@ jobs:
         run: |
           curl -sSL https://raw.githubusercontent.com/pdm-project/pdm/main/install-pdm.py | python3 -
           . .venv/bin/activate
-          pdm install -G full,test
+          pdm install -G full -dG test,publish
 
       - name: Build / run tests
         run: |

@@ -2,11 +2,11 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "dev", "polars", "full", "aws", "sql"]
+groups = ["default", "aws", "dev", "full", "polars", "publish", "sql", "test"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:c9311905f4d9b7b1fc48245e96262389c19a2133df0fb59ca483d99ce7d9eb23"
+content_hash = "sha256:89077ecf59f4de84727f9e22b59b76f7340176c764dc731206c3f0021f12fb0e"
 
 [[package]]
 name = "aiobotocore"
