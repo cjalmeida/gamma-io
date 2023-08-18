@@ -1,4 +1,5 @@
 import logging
+import os
 import signal
 import subprocess
 
@@ -33,7 +34,15 @@ def localstack():
 
     endpoint = "http://localhost:4566"
     region = "us-east-1"
+
+    # dummy keys
+    os.environ["AWS_ACCESS_KEY_ID"] = "AKIAIOSFODNN7EXAMPLE"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
     yield dict(endpoint=endpoint, region=region)
+
+    del os.environ["AWS_ACCESS_KEY_ID"]
+    del os.environ["AWS_SECRET_ACCESS_KEY"]
 
     # shutdown localstack
     logger.info(f"Shutting down localstack.")
@@ -46,12 +55,7 @@ def localstack():
 @pytest.fixture
 def bucket_test(localstack):
     bucket = "test-bucket"
-    args = dict(
-        region_name=localstack["region"],
-        endpoint_url=localstack["endpoint"],
-        aws_access_key_id="AKIAIOSFODNN7EXAMPLE",  # dummy keys
-        aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-    )
+    args = dict(region_name=localstack["region"], endpoint_url=localstack["endpoint"])
 
     s3_client = boto3.client("s3", **args)
     s3_client.create_bucket(Bucket=bucket)
