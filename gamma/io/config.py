@@ -37,7 +37,7 @@ def _check_gamma_config():
 
     try:
         import gamma.config  # noqa
-    except ModuleNotFoundError:
+    except ModuleNotFoundError:  # pragma: no cover
         msg = (
             "Missing 'gamma-config' dependency. Either provided it via 'pip install "
             "gamma-config', or replace 'gamma.io.config.get_datasets_config' and "

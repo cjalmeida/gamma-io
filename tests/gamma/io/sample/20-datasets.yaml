@@ -1,6 +1,7 @@
 # Configuration file used in tests
 
 _workdir: !env IO_TEST_TMP
+_project: !env IO_TEST_PROJECT_ROOT
 
 # File-systems options
 filesystems:
@@ -12,6 +13,8 @@ filesystems:
     # everything below here is returned as part of the options map
     endpoint_url: http://localhost:4566
 
+# SQL connection options
+
 datasets:
   source:
     customers_1k:
@@ -22,6 +25,11 @@ datasets:
     customers_1k_plain:
       location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.csv
       format: csv
+
+    customers_1k_local:
+      location: !j2 "file://{{c._project}}/samples/customers-1000.zip"
+      format: csv
+      compression: zip
 
   raw:
     customers:
@@ -50,7 +58,23 @@ datasets:
       format: excel
 
     customers_s3:
-      location: !j2 "s3://test-bucket/customers"
+      location: "s3://test-bucket/customers"
       format: parquet
       compression: snappy # for Spark compat
       partition_by: [cluster]
+
+    customers_sql_table:
+      # format for sql connections is `sql:{sqlalchemy url}`
+      # see https://docs.sqlalchemy.org/en/20/core/engines.html#sqlite
+      location: !j2 "sql:sqlite:///{{ c._workdir }}/sql/data.db"
+
+      # allow writing a full dataframe as table
+      format: sql_table
+
+      # read/write arguments. 'name' is mandatory for sql_table
+      args:
+        name: customers
+
+      # SQLAlchemy create_engine conn arguments
+      engine_args:
+        echo: false

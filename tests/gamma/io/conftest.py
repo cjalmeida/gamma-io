@@ -16,7 +16,14 @@ def io_config(monkeypatch):
 
     with tempfile.TemporaryDirectory() as td:
         monkeypatch.setenv("IO_TEST_TMP", td)
+        monkeypatch.setenv("IO_TEST_PROJECT_ROOT", _project_root())
 
         yield {"temp_dir": td}
 
     reset_config()
+
+
+def _project_root() -> str:
+    import tests
+
+    return str(Path(tests.__file__).parent.parent.absolute())

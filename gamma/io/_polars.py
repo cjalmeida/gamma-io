@@ -59,7 +59,8 @@ def read_polars(ds: Dataset, fmt, protocol):
 def _process_read_args(ds: Dataset):
     """Process dataset reader/writer arguments.
 
-    We parse `compression`, `columns` top-level args, and merge with `reader_args`
+    We parse `compression`, `columns` top-level args, and merge with `args` /
+    `reader_args`.
     """
     kwargs = {}
     if ds.compression:
@@ -68,6 +69,7 @@ def _process_read_args(ds: Dataset):
     if ds.columns:
         kwargs["columns"] = ds.columns
 
+    kwargs.update(ds.args)
     kwargs.update(ds.read_args)
     return kwargs
 
@@ -121,5 +123,6 @@ def _process_write_args(ds: Dataset):
     if ds.columns:
         kwargs["columns"] = ds.compression
 
+    kwargs.update(ds.args)
     kwargs.update(ds.write_args)
     return kwargs

@@ -31,3 +31,6 @@ from ._import_utils import try_import
 
 if try_import("polars"):
     from ._polars import read_polars, write_polars
+
+if try_import("sqlalchemy"):
+    from ._sql import get_sql_engine

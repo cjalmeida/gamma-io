@@ -58,7 +58,7 @@ def read_pandas(ds: Dataset, fmt, protocol):
 def _process_read_args(ds: Dataset):
     """Process dataset reader arguments.
 
-    Currently `compression`, `columns` and `**read_args`
+    Currently `compression`, `columns`, `**args`, `**read_args`
     """
     kwargs = {}
     if ds.compression:
@@ -67,6 +67,7 @@ def _process_read_args(ds: Dataset):
     if ds.columns:
         kwargs["columns"] = ds.compression
 
+    kwargs.update(ds.args)
     kwargs.update(ds.read_args)
     return kwargs
 
@@ -123,6 +124,7 @@ def process_write_args(ds: Dataset, fmt):
     if ds.columns:
         kwargs["columns"] = ds.compression
 
+    kwargs.update(ds.args)
     kwargs.update(ds.write_args)
     return kwargs
 
@@ -134,5 +136,6 @@ def process_write_args(ds: Dataset, fmt: Literal["csv"]):
     Currently `compression`, `columns` and `**write_args`
     """
     kwargs = dict(index=False, compression=ds.compression, columns=ds.columns)
+    kwargs.update(ds.args)
     kwargs.update(ds.write_args)
     return kwargs

@@ -42,11 +42,17 @@ class Dataset(BaseModel):
     format: str
     """The dataset storage format."""
 
+    args: Optional[dict] = {}
+    """Extra arguments shared by both reader/writer."""
+
     read_args: Optional[dict] = {}
     """Extra arguments passed directly to the reader."""
 
     write_args: Optional[dict] = {}
     """Extra arguments passed directly to the writer."""
+
+    engine_args: Optional[dict] = {}
+    """Extra arguments passed to SQLAlchemy `create_engine`."""
 
     #: Limit the columns to load for loaders that support this feature
     columns: Optional[list[str]] = None

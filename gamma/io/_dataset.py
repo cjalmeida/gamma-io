@@ -35,8 +35,7 @@ def get_dataset(layer: str, name: str, *, args=None, columns=None, **params) -> 
     entry = get_datasets_config()[layer][name]
     entry = _parse_protocol(entry)
     dataset = Dataset(layer=layer, name=name, **entry)
-    dataset.read_args.update(args or {})
-    dataset.write_args.update(args or {})
+    dataset.args.update(args or {})
 
     # parse partitions in params
     for part in list(params):
@@ -108,11 +107,13 @@ def _get_partition_path(ds: Dataset):
 def get_dataset_location(ds: Dataset) -> str:
     """Get the dataset location with path params applied."""
     try:
-        base_path = ds.location.format(**ds.params).rstrip("/")
+        base_path = ds.location.format(**ds.params)
         part_path = _get_partition_path(ds)
-        return f"{base_path}/{part_path}"
+        if part_path:
+            return f"{base_path.rstrip('/')}/{part_path}"
+        return base_path
 
-    except KeyError as ex:
+    except KeyError as ex:  # pragma: no cover
         raise KeyError(
             f"Missing Dataset param '{ex.args[0]}' while trying to render location "
             f"URI: {ds.location}"

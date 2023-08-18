@@ -38,6 +38,7 @@ def read_arrow_table(ds: Dataset, fmt, protocol) -> pa.Table:
         _filter = [(key, "=", val) for key, val in ds.partitions.items()]
         kwargs["filter"] = _filter
 
+    kwargs.update(ds.args)
     kwargs.update(ds.read_args)
     return arrow_ds.to_table(**kwargs)
 
@@ -71,6 +72,7 @@ def _get_pyarrow_dataset_writer_options(ds: Dataset, fmt):
     if ds.compression:
         kwargs["compression"] = ds.compression
 
+    kwargs.update(ds.args)
     kwargs.update(ds.write_args)
 
     match fmt:
