@@ -17,12 +17,17 @@ def localstack():
     Localstack is started in docker mode.
     """
 
-    logger.info("Start the localstack process")
-    proc = subprocess.Popen(["localstack", "start"], encoding="utf-8")
+    logger.info("Check if localstack is running")
+    cp = subprocess.run(["localstack", "wait", "-t", "5"], check=False)
 
-    # wait until it's ready, 15s timeout
-    logger.info("Waiting localstack ready")
-    subprocess.run(["localstack", "wait", "-t", "15"], check=True)
+    if cp.returncode != 0:
+        logger.info("Start the localstack process")
+        proc = subprocess.Popen(["localstack", "start"], encoding="utf-8")
+
+        # wait until it's ready, 15s timeout
+        logger.info("Waiting localstack ready")
+        subprocess.run(["localstack", "wait", "-t", "15"], check=True)
+
     logger.info(f"Localstack ready!")
 
     endpoint = "http://localhost:4566"
@@ -39,7 +44,7 @@ def localstack():
 
 
 @pytest.fixture
-def test_bucket(localstack):
+def bucket_test(localstack):
     bucket = "test-bucket"
     args = dict(region_name=localstack["region"], endpoint_url=localstack["endpoint"])
     s3_client = boto3.client("s3", **args)
@@ -61,7 +66,7 @@ def test_s3_dataset(io_config):
     assert "s3" in fs.protocol
 
 
-def test_s3_read_write(io_config, test_bucket):
+def test_s3_read_write(io_config, bucket_test):
     ds = get_dataset("raw", "customers_s3")
     fs, path = get_fs_path(ds)
 

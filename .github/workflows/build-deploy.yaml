@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@master
         with:
           submodules: recursive
+          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@master
@@ -29,6 +30,12 @@ jobs:
         run: |
           curl -sSL https://raw.githubusercontent.com/pdm-project/pdm/main/install-pdm.py | python3 -
           pdm install -G full -dG test,publish
+
+      - name: Start LocalStack
+        uses: LocalStack/setup-localstack@v0.1.2
+        with:
+          image-tag: 'latest'
+          install-awslocal: 'true'
 
       - name: Build / run tests
         run: |
