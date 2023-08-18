@@ -8,4 +8,5 @@ tag-push:
 
 .PHONY: pdm-lock
 pdm-lock:
+	rm -f pdm.lock
 	pdm lock -G:all -dG:all

@@ -25,13 +25,10 @@ full = [
     "polars>=0.18.13",
     "gamma-config>=0.7.1",
     "s3fs>=2023.6.0",
-    "sqlalchemy>=2.0.20",
+    "sqlalchemy>=2.0.20"
 ]
 aws = ["s3fs>=2023.6.0"]
 sql = ["sqlalchemy>=2.0.20"]
-"full,aws" = [
-    "boto3>=1.28.30",
-]
 
 [build-system]
 requires = ["pdm-backend"]
@@ -44,6 +41,7 @@ test = [
     "openpyxl>=3.1.2",
     "localstack>=2.2.0",
     "sqlalchemy-utils>=0.41.1",
+    "boto3"
 ]
 
 publish = ["twine>=4.0.2"]
