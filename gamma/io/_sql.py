@@ -8,6 +8,7 @@ take care to read/write only from the main process/thread.
 import hashlib
 import pickle
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 import pandas as pd
 from sqlalchemy import create_engine
@@ -15,6 +16,7 @@ from sqlalchemy.engine import Engine
 
 from . import dispatch
 from ._dataset import get_dataset_location
+from ._fs import get_fs_path
 from ._types import Dataset, DatasetException
 
 # Global engine cache, should be created one per process/thread.
@@ -52,7 +54,7 @@ def read_pandas(ds: Dataset, fmt: Literal["sql_table"], protocol: Literal["sql"]
 
     kwargs = {"con": engine}
     kwargs.update(ds.args)
-    kwargs.update(ds.write_args)
+    kwargs.update(ds.read_args)
     kwargs["table_name"] = kwargs.pop("table_name", None) or kwargs.pop("name", None)
 
     if kwargs["table_name"] is None:  # pragma: no cover
@@ -60,6 +62,46 @@ def read_pandas(ds: Dataset, fmt: Literal["sql_table"], protocol: Literal["sql"]
         raise DatasetException(msg, ds)
 
     return pd.read_sql_table(**kwargs)
+
+
+@dispatch
+def read_pandas(ds: Dataset, fmt: Literal["sql_query"], protocol: Literal["sql"]):
+    """Support for loading a dataset by running a SQL query via SQLAlchemy.
+
+    The SQL query can be parameterized and values pushed using `Dataset.params`
+    """
+    # get a sqlalch engine
+    engine = get_sql_engine(ds)
+
+    kwargs = {"con": engine, "params": ds.params}
+    kwargs.update(ds.args)
+    kwargs.update(ds.read_args)
+
+    sql = kwargs.pop("sql", None)
+
+    if sql is None:  # pragma: no cover
+        msg = (
+            "Missing 'args.sql' from the dataset specification. You must provide a "
+            "textual SQL query or a URL to a file"
+        )
+        raise DatasetException(msg, ds)
+
+    kwargs["sql"] = load_sql_statement(sql)
+
+    return pd.read_sql_query(**kwargs)
+
+
+def load_sql_statement(sql: str) -> str:
+    """Return a SQL query from provided `sql` arg.
+
+    We detect if sql is an URL, and if so we get the contents treating it as a
+    'location' string, otherwise we return the string as is.
+    """
+    if urlparse(sql).scheme:
+        fs, path = get_fs_path(sql)
+        return fs.read_text(path)
+
+    return sql
 
 
 @dispatch
@@ -106,6 +148,7 @@ def get_sql_engine(ds: Dataset) -> Engine:
 
 
 def _validate_sql_access():
+    """Ensure proper process/thread when accessing the engine."""
     import multiprocessing as mp
     import threading
 

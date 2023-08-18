@@ -13,8 +13,6 @@ filesystems:
     # everything below here is returned as part of the options map
     endpoint_url: http://localhost:4566
 
-# SQL connection options
-
 datasets:
   source:
     customers_1k:
@@ -78,3 +76,9 @@ datasets:
       # SQLAlchemy create_engine conn arguments
       engine_args:
         echo: false
+
+    customers_sql_query:
+      location: !j2 "sql:sqlite:///{{ c._workdir }}/sql/data.db"
+      format: sql_query
+      args:
+        sql: !j2 "file://{{ c._project }}/samples/customers.sql"

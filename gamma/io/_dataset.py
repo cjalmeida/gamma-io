@@ -15,14 +15,16 @@ FSPathType = Tuple[fsspec.AbstractFileSystem, str]
 logger = logging.getLogger(__name__)
 
 
-def get_dataset(layer: str, name: str, *, args=None, columns=None, **params) -> Dataset:
+def get_dataset(
+    _layer: str, _name: str, *, args=None, columns=None, **params
+) -> Dataset:
     """Load a dataset entry from configuration.
 
     You can pass both partition filters or path parameters as keyword args.
 
     Args:
-        layer: the layer name
-        name: the dataset name
+        _layer: the layer name
+        _name: the dataset name
 
     Keyword Args:
         args: Optionally override reader/writer arguments
@@ -32,9 +34,9 @@ def get_dataset(layer: str, name: str, *, args=None, columns=None, **params) -> 
     """
     from .config import get_datasets_config
 
-    entry = get_datasets_config()[layer][name]
+    entry = get_datasets_config()[_layer][_name]
     entry = _parse_protocol(entry)
-    dataset = Dataset(layer=layer, name=name, **entry)
+    dataset = Dataset(layer=_layer, name=_name, **entry)
     dataset.args.update(args or {})
 
     # parse partitions in params

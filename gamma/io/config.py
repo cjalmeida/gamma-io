@@ -40,7 +40,7 @@ def _check_gamma_config():
     except ModuleNotFoundError:  # pragma: no cover
         msg = (
             "Missing 'gamma-config' dependency. Either provided it via 'pip install "
-            "gamma-config', or replace 'gamma.io.config.get_datasets_config' and "
+            "gamma-config', or monkey-patch 'gamma.io.config.get_datasets_config' and "
             "'gamma.io.config.get_filesystems_config'"
         )
         raise MissingDependencyException(msg)

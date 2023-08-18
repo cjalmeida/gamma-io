@@ -33,10 +33,16 @@ def test_sql_read_write(io_config, caplog):
         table_count = cur.scalar_one()
         assert table_count == len(df)
 
-    # check we can read from db
+    # check we can read the full table from db
     df2 = read_pandas(ds)
 
     df = df.sort_values("Index").reset_index(drop=True)
     df2 = df2.sort_values("Index").reset_index(drop=True)
 
     pd.testing.assert_frame_equal(df, df2)
+
+    # check we can read a parameterized SQL query
+    df3 = read_pandas("raw", "customers_sql_query", name="andr%")
+
+    for _name in df3["First Name"].tolist():
+        assert "andr" in _name.lower()

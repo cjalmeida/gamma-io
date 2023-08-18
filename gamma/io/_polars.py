@@ -97,7 +97,7 @@ def write_polars(df: pl.DataFrame, ds: Dataset, fmt, protocol):
     """We assume the storage to be `fsspec` stream compatible (ie. single file)."""
     # get reader function based on format name
     func = getattr(pl.DataFrame, f"write_{fmt}", None)
-    if func is None:
+    if func is None:  # pragma: no cover
         ValueError(f"Writing Polars format not supported yet: {fmt}")
 
     # get a fs, path reference
