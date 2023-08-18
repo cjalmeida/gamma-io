@@ -18,19 +18,17 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
 
+
 [project.optional-dependencies]
 polars = ["polars>=0.18.13"]
 full = [
     "polars>=0.18.13",
     "gamma-config>=0.7.1",
     "s3fs>=2023.6.0",
-]
-aws = [
-    "s3fs>=2023.6.0",
-]
-sql = [
     "sqlalchemy>=2.0.20",
 ]
+aws = ["s3fs>=2023.6.0"]
+sql = ["sqlalchemy>=2.0.20"]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
@@ -54,6 +52,7 @@ dev = [
     "awscli-local>=0.21",
     "s3fs>=2023.6.0",
     "sqlalchemy-utils>=0.41.1",
+    "twine>=4.0.2",
 ]
 
 [tool.isort]
@@ -75,3 +74,6 @@ testpaths = "tests"
 [tool.pdm.version]
 source = "file"
 path = "gamma/io/__version__.py"
+
+[tool.pdm.build]
+includes = ["gamma/io"]
