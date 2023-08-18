@@ -29,6 +29,9 @@ full = [
 ]
 aws = ["s3fs>=2023.6.0"]
 sql = ["sqlalchemy>=2.0.20"]
+"full,aws" = [
+    "boto3>=1.28.30",
+]
 
 [build-system]
 requires = ["pdm-backend"]
