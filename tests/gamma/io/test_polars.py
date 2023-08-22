@@ -2,6 +2,7 @@ import logging
 import re
 import tempfile
 from itertools import cycle
+from random import choice
 
 import pandas as pd
 import polars as pl
@@ -19,10 +20,11 @@ def test_read_write(io_config, caplog):
     df = read_polars("source", "customers_1k_plain")
     assert len(df) > 100
 
-    # assign sequential cluster values
-    vals = cycle("ABCD")
-    cluster = [next(vals) for _ in range(len(df))]
-    df = df.with_columns(pl.Series("cluster", cluster))
+    # assign partition values
+    vals_l1 = cycle("ABCD")
+    l1 = [next(vals_l1) for _ in range(len(df))]
+    l2 = [choice("AB") for _ in range(len(df))]
+    df = df.with_columns(pl.Series("l1", l1), pl.Series("l2", l2))
 
     # write partitioned parquet
     write_polars(df, "raw", "customers")
@@ -34,8 +36,8 @@ def test_read_write(io_config, caplog):
     # inspect partitions
     ds = get_dataset("raw", "customers")
     fs, path = get_fs_path(ds)
-    for entry in fs.ls(path):
-        assert re.match(".*/cluster=[ABCD]$", entry)
+    for entry in fs.glob(path + "/*/*"):
+        assert re.match(".*/l1=[ABCD]/l2=[AB]$", entry)
 
     # read it back
     df2 = read_polars("raw", "customers")
@@ -56,9 +58,8 @@ def test_read_write(io_config, caplog):
     # inspect partitions
     ds = get_dataset("raw", "customers_feather")
     fs, path = get_fs_path(ds)
-    assert len(fs.ls(path)) == 4
-    for entry in fs.ls(path):
-        assert re.match(".*/cluster=[ABCD]$", entry)
+    for entry in fs.glob(path + "/*/*"):
+        assert re.match(".*/l1=[ABCD]/l2=[AB]$", entry)
 
     df3 = read_polars("raw", "customers_feather")
     df3 = df3.sort("Index")

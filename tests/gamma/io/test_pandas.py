@@ -2,10 +2,17 @@ import gzip
 import logging
 import re
 from itertools import cycle
+from random import choice
 
 import pandas as pd
 
-from gamma.io import get_dataset, get_fs_path, read_pandas, write_pandas
+from gamma.io import (
+    get_dataset,
+    get_fs_path,
+    list_partitions,
+    read_pandas,
+    write_pandas,
+)
 
 
 def test_read_write(io_config, caplog):
@@ -23,10 +30,12 @@ def test_read_write(io_config, caplog):
     assert "source.customers_1k" in caplog.text.lower()
     caplog.clear()
 
-    # assign sequential cluster values
-    vals = cycle("ABCD")
-    cluster = [next(vals) for _ in range(len(df))]
-    df["cluster"] = cluster
+    # assign partition values
+    vals_l1 = cycle("ABCD")
+    l1 = [next(vals_l1) for _ in range(len(df))]
+    l2 = [choice("AB") for _ in range(len(df))]
+    df["l1"] = l1
+    df["l2"] = l2
 
     # write partitioned parquet
     write_pandas(df, "raw", "customers")
@@ -38,8 +47,22 @@ def test_read_write(io_config, caplog):
     # inspect partitions
     ds = get_dataset("raw", "customers")
     fs, path = get_fs_path(ds)
-    for entry in fs.ls(path):
-        assert re.match(".*/cluster=[ABCD]$", entry)
+    for entry in fs.glob(path + "/*/*"):
+        assert re.match(".*/l1=[ABCD]/l2=[AB]$", entry)
+
+    # try list only partitions
+    p1 = list_partitions("raw", "customers")
+    assert "A" in p1["l1"].tolist()
+    assert "B" in p1["l1"].tolist()
+    assert "C" in p1["l1"].tolist()
+    assert "A" in p1["l2"].tolist()
+    assert "C" not in p1["l2"].tolist()
+
+    # list partition using filters
+    p2 = list_partitions("raw", "customers", l1="A")
+    assert "A" in p2["l1"].tolist()
+    assert "B" not in p2["l1"].tolist()
+    assert "A" in p2["l2"].tolist() or "B" in p2["l2"].tolist()
 
     # read it back
     df2 = read_pandas("raw", "customers")

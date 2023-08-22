@@ -2,11 +2,13 @@ import logging
 import os
 import signal
 import subprocess
+from itertools import cycle
+from random import choice
 
 import boto3
 import pytest
 
-from gamma.io import get_dataset, get_fs_path
+from gamma.io import get_dataset, get_fs_path, read_pandas, write_pandas
 
 logger = logging.getLogger(__name__)
 
@@ -82,3 +84,16 @@ def test_s3_read_write(io_config, bucket_test):
 
     # check access and empty dir
     assert len(fs.ls(path)) == 0
+
+    df = read_pandas("source", "customers_1k_local")
+    assert len(df) > 100
+
+    # assign partition values
+    vals_l1 = cycle("ABCD")
+    l1 = [next(vals_l1) for _ in range(len(df))]
+    l2 = [choice("AB") for _ in range(len(df))]
+    df["l1"] = l1
+    df["l2"] = l2
+
+    # write partitioned parquet
+    write_pandas(df, "raw", "customers")

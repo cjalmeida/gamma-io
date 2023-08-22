@@ -139,3 +139,15 @@ def process_write_args(ds: Dataset, fmt: Literal["csv"]):
     kwargs.update(ds.args)
     kwargs.update(ds.write_args)
     return kwargs
+
+
+@dispatch
+def list_partitions(*args, **kwargs) -> pd.DataFrame:
+    """List the existing partition set.
+
+    Return a Dataframe with the available partitions and size.
+    """
+    ds = get_dataset(*args, **kwargs)
+    ds.columns = ds.partition_by
+
+    return read_pandas(ds).drop_duplicates()

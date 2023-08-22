@@ -34,13 +34,13 @@ datasets:
       location: !j2 "file://{{ c._workdir }}/data/customers"
       format: parquet
       compression: snappy # for Spark compat
-      partition_by: [cluster]
+      partition_by: [l1, l2]
 
     customers_feather:
       location: !j2 "file://{{ c._workdir }}/data/customers_feather"
       format: feather
       compression: zstd
-      partition_by: [cluster]
+      partition_by: [l1, l2]
 
     customers_csv:
       location: !j2 "file://{{ c._workdir }}/data/customers.csv.gz"
@@ -59,7 +59,7 @@ datasets:
       location: "s3://test-bucket/customers"
       format: parquet
       compression: snappy # for Spark compat
-      partition_by: [cluster]
+      partition_by: [l1, l2]
 
     customers_sql_table:
       # format for sql connections is `sql:{sqlalchemy url}`

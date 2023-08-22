@@ -22,7 +22,7 @@ from ._types import Dataset, PartitionException, DatasetException
 
 # Core dataframe libs - pandas / pyarrow
 from ._arrow import read_arrow_table, write_arrow_table
-from ._pandas import read_pandas, write_pandas
+from ._pandas import read_pandas, write_pandas, list_partitions
 
 from ._import_utils import try_import
 

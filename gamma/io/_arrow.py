@@ -7,6 +7,7 @@ partitioning.
 
 import pyarrow as pa
 import pyarrow.dataset as pa_ds
+from pyarrow.compute import field, scalar
 
 from . import dispatch
 from ._fs import get_fs_path
@@ -35,7 +36,9 @@ def read_arrow_table(ds: Dataset, fmt, protocol) -> pa.Table:
         kwargs["columns"] = ds.columns
 
     if ds.partitions:
-        _filter = [(key, "=", val) for key, val in ds.partitions.items()]
+        _filter = scalar(True)
+        for key, val in ds.partitions.items():
+            _filter &= field(key) == val
         kwargs["filter"] = _filter
 
     kwargs.update(ds.args)

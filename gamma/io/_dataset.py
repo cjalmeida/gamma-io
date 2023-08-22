@@ -90,29 +90,10 @@ def _validate_partitions(ds: Dataset) -> None:
         raise PartitionException(msg, ds)
 
 
-def _get_partition_path(ds: Dataset):
-    if not ds.partition_by:
-        return ""
-
-    parts = []
-    for part in ds.partition_by:
-        part
-    parts = [
-        f"{part}={ds.partitions.get(part)}"
-        for part in ds.partition_by
-        if part in ds.partitions
-    ]
-
-    return "/".join(parts)
-
-
 def get_dataset_location(ds: Dataset) -> str:
     """Get the dataset location with path params applied."""
     try:
         base_path = ds.location.format(**ds.params)
-        part_path = _get_partition_path(ds)
-        if part_path:
-            return f"{base_path.rstrip('/')}/{part_path}"
         return base_path
 
     except KeyError as ex:  # pragma: no cover
