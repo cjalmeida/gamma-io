@@ -30,8 +30,7 @@ the data storage layer.
     own configuration provider!
 -   Support for Pandas, PyArrow and Polars dataframes.
 -   Support for reading files from multiple filesystems via [fsspec][fsspec].
--   First party support for partitioned Parquet and Feather (Arrow) datasets.
-
+-   First party support for partitioned Parquet datasets.
 
 ## Getting started
 
@@ -52,23 +51,22 @@ with the contents:
 
 ```yaml
 datasets:
-  source:
-    customers_1k:
-      location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.zip
-      format: csv
-      compression: zip
+    source:
+        customers_1k:
+            location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.zip
+            format: csv
+            compression: zip
 
-    customers_1k_plain:
-      location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.csv
-      format: csv
+        customers_1k_plain:
+            location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.csv
+            format: csv
 
-  raw:
-    customers:
-      location: "file:///tmp/gamma-io/data/customers"
-      format: parquet
-      compression: snappy
-      partition_by: [cluster]
-
+    raw:
+        customers:
+            location: "file:///tmp/gamma-io/data/customers"
+            format: parquet
+            compression: snappy
+            partition_by: [cluster]
 ```
 
 The file above provide two "layers": a `source` layer containing HTTPS remote
