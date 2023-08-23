@@ -1,6 +1,9 @@
 """IO support for Polars."""
 
 
+import shutil
+from io import BytesIO
+
 import polars as pl
 
 from . import dispatch
@@ -114,7 +117,7 @@ def write_polars(df: pl.DataFrame, ds: Dataset, fmt, protocol):
 
 
 @dispatch
-def write_polars(df: pl.DataFrame, ds: Dataset, fmt: PyArrowFmt, protocol):
+def write_polars(df: pl.DataFrame, ds: Dataset, fmt: PyArrowFmt, protocol) -> None:
     """Write DataFrames formats into a PyArrow compatible dataset."""
     fs, path = get_fs_path(ds)
 
@@ -122,11 +125,18 @@ def write_polars(df: pl.DataFrame, ds: Dataset, fmt: PyArrowFmt, protocol):
         case "parquet":
             arrow_args = process_arrow_write_args(ds)
             arrow_args["filesystem"] = fs
-            return df.write_parquet(
-                file=path, use_pyarrow=True, pyarrow_options=arrow_args
-            )
+            df.write_parquet(file=path, use_pyarrow=True, pyarrow_options=arrow_args)
 
         case f if f in FEATHER_STRINGS:
-            return df.write_ipc(file=path, compression=ds.compression or "uncompressed")
+            kwargs = dict(compression=ds.compression or "uncompressed")
+
+            if fs.protocol == "file":
+                df.write_ipc(path, **kwargs)
+
+            else:
+                data: BytesIO = df.write_ipc(None, **kwargs)
+                with fs.open(path, "wb") as dst_fo:
+                    shutil.copyfileobj(data, dst_fo)
+
         case _:
             raise NotImplementedError(f"Format not supported {fmt}")

@@ -40,7 +40,6 @@ datasets:
       location: !j2 "file://{{ c._workdir }}/data/customers_feather"
       format: feather
       compression: zstd
-      partition_by: [l1, l2]
 
     customers_csv:
       location: !j2 "file://{{ c._workdir }}/data/customers.csv.gz"

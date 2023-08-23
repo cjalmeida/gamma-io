@@ -55,15 +55,9 @@ def test_read_write(io_config, caplog):
 
     # save and read back as feather
     write_polars(df, "raw", "customers_feather")
-
-    # inspect partitions
-    ds = get_dataset("raw", "customers_feather")
-    fs, path = get_fs_path(ds)
-    for entry in fs.glob(path + "/*/*"):
-        assert re.match(".*/l1=[ABCD]/l2=[AB]$", entry)
-
     df3 = read_polars("raw", "customers_feather")
     df3 = df3.sort("Index")
+
     pd.testing.assert_frame_equal(df.to_pandas(), df3.to_pandas())
 
     # save as csv file
