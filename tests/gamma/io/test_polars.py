@@ -49,6 +49,7 @@ def test_read_write(io_config, caplog):
     # ensure same order
     df = df.sort("Index")
     df2 = df2.sort("Index")
+    df2 = df2.with_columns(pl.col("l1").cast(pl.Utf8), pl.col("l2").cast(pl.Utf8))
 
     pd.testing.assert_frame_equal(df.to_pandas(), df2.to_pandas())
 

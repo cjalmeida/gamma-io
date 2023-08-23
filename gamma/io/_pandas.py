@@ -3,16 +3,12 @@ from typing import Literal
 import pandas as pd
 
 from . import dispatch
-from ._arrow import (
-    is_arrow_readable,
-    is_arrow_writeable,
-    read_arrow_table,
-    write_arrow_table,
-)
+from ._arrow import process_arrow_read_args, process_arrow_write_args
 from ._dataset import get_dataset
 from ._fs import get_fs_path
 from ._logging import log_ds_read, log_ds_write
-from ._types import Dataset
+from ._types import FEATHER_STRINGS, Dataset, PyArrowFmt
+from ._utils import func_arguments
 
 
 @dispatch
@@ -25,11 +21,6 @@ def read_pandas(*args, **kwargs) -> pd.DataFrame:
 @log_ds_read
 def read_pandas(ds: Dataset):
     """Pandas dataset reader shortcut."""
-    # Delegate to pyarrow if supported
-    if is_arrow_readable(ds):
-        tb = read_arrow_table(ds)
-        return tb.to_pandas()
-
     return read_pandas(ds, ds.format, ds.protocol)
 
 
@@ -42,34 +33,49 @@ def read_pandas(ds: Dataset, fmt, protocol):
     # get reader function based on format name
     func = getattr(pd, f"read_{fmt}", None)
     if func is None:
-        ValueError(f"Reading Pandas format not supported yet: {fmt}")
+        NotImplemented(f"Format not supported {fmt}")
 
     # get a fs, path reference
     fs, path = get_fs_path(ds)
 
     # process arguments
-    kwargs = _process_read_args(ds)
+    kwargs = dict()
+    kwargs.update(ds.args)
+    kwargs.update(ds.read_args)
+
+    fargs = func_arguments(func)
+
+    if "compression" in fargs:
+        kwargs["compression"] = ds.compression
+
+    if "columns" in fargs:
+        kwargs["columns"] = ds.columns
 
     # stream and read data
     with fs.open(path, "rb") as fo:
         return func(fo, **kwargs)
 
 
-def _process_read_args(ds: Dataset):
-    """Process dataset reader arguments.
+@dispatch
+def read_pandas(ds: Dataset, fmt: PyArrowFmt, protocol):
+    """Specialized support for PyArrow datasets."""
+    # get a fs, path reference
+    fs, path = get_fs_path(ds)
 
-    Currently `compression`, `columns`, `**args`, `**read_args`
-    """
-    kwargs = {}
-    if ds.compression:
-        kwargs["compression"] = ds.compression
+    # process arguments
+    kwargs = process_arrow_read_args(ds)
+    kwargs["engine"] = "pyarrow"
+    kwargs["filesystem"] = fs
+    kwargs["path"] = path
 
-    if ds.columns:
-        kwargs["columns"] = ds.compression
-
-    kwargs.update(ds.args)
-    kwargs.update(ds.read_args)
-    return kwargs
+    # stream and read data
+    match fmt:
+        case "parquet":
+            return pd.read_parquet(**kwargs)
+        case f if f in FEATHER_STRINGS:
+            return pd.read_feather(**kwargs)
+        case _:
+            raise NotImplementedError(f"Format not supported {fmt}")
 
 
 @dispatch
@@ -81,30 +87,27 @@ def write_pandas(df: pd.DataFrame, *args, **kwargs) -> None:
 @dispatch
 @log_ds_write
 def write_pandas(df: pd.DataFrame, ds: Dataset) -> None:
-    """Write a polars DataFrame to a dataset."""
-    from pyarrow import Table
-
-    # Delegate to pyarrow if supported
-    if is_arrow_writeable(ds):
-        tb = Table.from_pandas(df)
-        return write_arrow_table(tb, ds)
-
+    """Write a pandas DataFrame to a dataset."""
     return write_pandas(df, ds, ds.format, ds.protocol)
 
 
 @dispatch
 def write_pandas(df: pd.DataFrame, ds: Dataset, fmt, protocol):
-    """We assume the storage to be `fsspec` stream compatible (ie. single file)."""
+    """Fallback writer for writing pandas Dataframe to a dataset.
+
+    We assume the storage to be `fsspec` stream compatible (ie. single file).
+    """
     # get reader function based on format name
     func = getattr(pd.DataFrame, f"to_{fmt}", None)
     if func is None:
-        ValueError(f"Writing Pandas format not supported yet: {fmt}")
+        NotImplemented(f"Format not supported {fmt}")
+    fargs = func_arguments(func)
 
     # get a fs, path reference
     fs, path = get_fs_path(ds)
 
     # process arguments
-    kwargs = process_write_args(ds, fmt)
+    kwargs = process_write_args(ds, fmt, fargs)
 
     # stream and read data
     with fs.open(path, "wb") as fo:
@@ -112,16 +115,37 @@ def write_pandas(df: pd.DataFrame, ds: Dataset, fmt, protocol):
 
 
 @dispatch
-def process_write_args(ds: Dataset, fmt):
+def write_pandas(df: pd.DataFrame, ds: Dataset, fmt: PyArrowFmt, protocol) -> None:
+    # get a fs, path reference
+    fs, path = get_fs_path(ds)
+
+    # process arguments
+    kwargs = process_arrow_write_args(ds)
+    kwargs["index"] = False
+    kwargs["engine"] = "pyarrow"
+    kwargs["path"] = path
+    kwargs["filesystem"] = fs
+
+    match fmt:
+        case "parquet":
+            df.to_parquet(**kwargs)
+        case f if f in FEATHER_STRINGS:
+            df.to_feather(**kwargs)
+        case _:
+            raise NotImplementedError(f"Format not supported {fmt}")
+
+
+@dispatch
+def process_write_args(ds: Dataset, fmt, fargs):
     """Process dataset writer arguments.
 
     Currently `compression`, `columns` and `**write_args`
     """
     kwargs = {}
-    if ds.compression:
+    if "compression" in fargs and ds.compression is not None:
         kwargs["compression"] = ds.compression
 
-    if ds.columns:
+    if "columsn in fargs" and ds.columns:
         kwargs["columns"] = ds.compression
 
     kwargs.update(ds.args)
@@ -130,7 +154,7 @@ def process_write_args(ds: Dataset, fmt):
 
 
 @dispatch
-def process_write_args(ds: Dataset, fmt: Literal["csv"]):
+def process_write_args(ds: Dataset, fmt: Literal["csv"], fargs):
     """Process dataset writer arguments for CSVs.
 
     Currently `compression`, `columns` and `**write_args`

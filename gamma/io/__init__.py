@@ -21,10 +21,9 @@ from ._fs import get_fs_path
 from ._types import Dataset, PartitionException, DatasetException
 
 # Core dataframe libs - pandas / pyarrow
-from ._arrow import read_arrow_table, write_arrow_table
 from ._pandas import read_pandas, write_pandas, list_partitions
 
-from ._import_utils import try_import
+from ._utils import try_import
 
 # Stack specific features, you should be able to remove modules
 # if you don't need specific functionality

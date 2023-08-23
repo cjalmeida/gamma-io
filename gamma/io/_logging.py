@@ -8,7 +8,7 @@ from decorator import decorator
 from ._dataset import get_dataset_location
 from ._types import Dataset
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gamma.io")
 
 
 def _pre_log(msg):

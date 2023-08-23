@@ -4,16 +4,12 @@
 import polars as pl
 
 from . import dispatch
-from ._arrow import (
-    is_arrow_readable,
-    is_arrow_writeable,
-    read_arrow_table,
-    write_arrow_table,
-)
+from ._arrow import process_arrow_read_args, process_arrow_write_args
 from ._dataset import get_dataset
 from ._fs import get_fs_path
 from ._logging import log_ds_read, log_ds_write
-from ._types import Dataset
+from ._types import FEATHER_STRINGS, Dataset, PyArrowFmt
+from ._utils import func_arguments
 
 
 @dispatch
@@ -26,11 +22,6 @@ def read_polars(*args, **kwargs) -> pl.DataFrame:
 @log_ds_read
 def read_polars(ds: Dataset):
     """Polars dataset reader shortcut."""
-    # Delegate to pyarrow if supported
-    if is_arrow_readable(ds):
-        tb = read_arrow_table(ds)
-        return pl.from_arrow(tb)
-
     return read_polars(ds, ds.format, ds.protocol)
 
 
@@ -49,29 +40,40 @@ def read_polars(ds: Dataset, fmt, protocol):
     fs, path = get_fs_path(ds)
 
     # process arguments
-    kwargs = _process_read_args(ds)
+    kwargs = dict()
+    kwargs.update(ds.args)
+    kwargs.update(ds.read_args)
+
+    fargs = func_arguments(func)
+
+    if "compression" in fargs:
+        kwargs["compression"] = ds.compression
+
+    if "columns" in fargs:
+        kwargs["columns"] = ds.columns
 
     # stream and read data
     with fs.open(path, "rb") as fo:
         return func(fo, **kwargs)
 
 
-def _process_read_args(ds: Dataset):
-    """Process dataset reader/writer arguments.
+@dispatch
+def read_polars(ds: Dataset, fmt: PyArrowFmt, protocol):
+    """Read PyArrow compatible formats into a DataFrame."""
+    fs, path = get_fs_path(ds)
+    arrow_args = process_arrow_read_args(ds)
+    arrow_args["filesystem"] = fs
 
-    We parse `compression`, `columns` top-level args, and merge with `args` /
-    `reader_args`.
-    """
-    kwargs = {}
-    if ds.compression:
-        kwargs["compression"] = ds.compression
-
-    if ds.columns:
-        kwargs["columns"] = ds.columns
-
-    kwargs.update(ds.args)
-    kwargs.update(ds.read_args)
-    return kwargs
+    match fmt:
+        case "parquet":
+            return pl.read_parquet(
+                source=path, use_pyarrow=True, pyarrow_options=arrow_args
+            )
+        case f if f in FEATHER_STRINGS:
+            with fs.open(path, "rb") as fo:
+                return pl.read_ipc(source=fo, use_pyarrow=True)
+        case _:
+            raise NotImplementedError(f"Format not supported {fmt}")
 
 
 @dispatch
@@ -84,11 +86,6 @@ def write_polars(df: pl.DataFrame, *args, **kwargs) -> None:
 @log_ds_write
 def write_polars(df: pl.DataFrame, ds: Dataset) -> None:
     """Write a polars DataFrame to a dataset."""
-    # Delegate to pyarrow if supported
-    if is_arrow_writeable(ds):
-        tb = df.to_arrow()
-        return write_arrow_table(tb, ds)
-
     return write_polars(df, ds, ds.format, ds.protocol)
 
 
@@ -100,29 +97,36 @@ def write_polars(df: pl.DataFrame, ds: Dataset, fmt, protocol):
     if func is None:  # pragma: no cover
         ValueError(f"Writing Polars format not supported yet: {fmt}")
 
+    fargs = func_arguments(func)
+
     # get a fs, path reference
     fs, path = get_fs_path(ds)
 
     # process arguments
-    kwargs = _process_write_args(ds)
+    _kwargs = dict(compression=ds.compression, columns=ds.columns)
+    _kwargs.update(ds.args)
+    _kwargs.update(ds.write_args)
+    kwargs = {k: v for k, v in _kwargs.items() if k in fargs}
 
     # stream and read data
     with fs.open(path, "wb") as fo:
         return func(df, fo, **kwargs)
 
 
-def _process_write_args(ds: Dataset):
-    """Process dataset writer arguments.
+@dispatch
+def write_polars(df: pl.DataFrame, ds: Dataset, fmt: PyArrowFmt, protocol):
+    """Write DataFrames formats into a PyArrow compatible dataset."""
+    fs, path = get_fs_path(ds)
 
-    Currently `compression`, `columns` and `**write_args`
-    """
-    kwargs = {}
-    if ds.compression:
-        kwargs["compression"] = ds.compression
+    match fmt:
+        case "parquet":
+            arrow_args = process_arrow_write_args(ds)
+            arrow_args["filesystem"] = fs
+            return df.write_parquet(
+                file=path, use_pyarrow=True, pyarrow_options=arrow_args
+            )
 
-    if ds.columns:
-        kwargs["columns"] = ds.compression
-
-    kwargs.update(ds.args)
-    kwargs.update(ds.write_args)
-    return kwargs
+        case f if f in FEATHER_STRINGS:
+            return df.write_ipc(file=path, compression=ds.compression or "uncompressed")
+        case _:
+            raise NotImplementedError(f"Format not supported {fmt}")

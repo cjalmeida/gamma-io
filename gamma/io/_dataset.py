@@ -3,7 +3,6 @@
 
 import logging
 from typing import Tuple
-from urllib.parse import urlsplit
 
 import fsspec
 
@@ -12,7 +11,7 @@ from ._types import Dataset, PartitionException
 # type alias
 FSPathType = Tuple[fsspec.AbstractFileSystem, str]
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gamma.io")
 
 
 def get_dataset(
@@ -35,7 +34,6 @@ def get_dataset(
     from .config import get_datasets_config
 
     entry = get_datasets_config()[_layer][_name]
-    entry = _parse_protocol(entry)
     dataset = Dataset(layer=_layer, name=_name, **entry)
     dataset.args.update(args or {})
 
@@ -53,16 +51,6 @@ def get_dataset(
         dataset.columns = columns
 
     return dataset
-
-
-def _parse_protocol(entry: dict) -> dict:
-    if entry.get("protocol"):
-        return entry
-
-    out = entry.copy()
-    u = urlsplit(entry["location"])
-    out["protocol"] = u.scheme
-    return out
 
 
 def _validate_partitions(ds: Dataset) -> None:

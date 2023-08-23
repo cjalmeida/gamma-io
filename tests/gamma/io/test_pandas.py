@@ -67,10 +67,12 @@ def test_read_write(io_config, caplog):
     # read it back
     df2 = read_pandas("raw", "customers")
 
-    # ensure same order, drop useless index, check equal
+    # ensure same order, drop useless index, fix categoricals, check equal
     df = df.sort_values("Index").reset_index(drop=True)
     df2 = df2.sort_values("Index").reset_index(drop=True)
-    pd.testing.assert_frame_equal(df, df2)
+    df2.l1 = df2.l1.astype("str")
+    df2.l2 = df2.l2.astype("str")
+    pd.testing.assert_frame_equal(df, df2, check_categorical=False)
 
     # save as csv
     write_pandas(df, "raw", "customers_csv")

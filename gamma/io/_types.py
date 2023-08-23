@@ -1,6 +1,10 @@
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
+
+PyArrowFmt = Literal["parquet"] | Literal["feather"] | Literal["arrow"] | Literal["ipc"]
+
+FEATHER_STRINGS = set(["feather", "arrow", "ipc"])
 
 
 class DatasetException(Exception):
@@ -28,19 +32,19 @@ class Dataset(BaseModel):
     name: str
     """Dataset name, unique in a layer"""
 
-    protocol: str
-    """The dataset storage protocol. If not provided in declarative
-    configuration, it's inferred from location URL scheme."""
-
     location: str
     """URL representing the location of this library"""
+
+    format: str
+    """The dataset storage format."""
+
+    protocol: str | None = None
+    """The dataset storage protocol. If not provided in declarative
+    configuration, it's inferred from location URL scheme."""
 
     params: Optional[dict] = {}
     """Params to be interpolated in the location URI, or passed as SQL query parameters.
     Provided on dataset instantiation."""
-
-    format: str
-    """The dataset storage format."""
 
     args: Optional[dict] = {}
     """Extra arguments shared by both reader/writer."""
@@ -65,6 +69,18 @@ class Dataset(BaseModel):
 
     compression: Optional[str] = None
     """Compression, if supported by the loader/format."""
+
+    @model_validator(mode="after")
+    def _parse_protocol(self) -> "Dataset":
+        """Set protocol field from location if not provided."""
+        from urllib.parse import urlsplit
+
+        if self.protocol is not None:
+            return self
+
+        u = urlsplit(self.location)
+        self.protocol = u.scheme
+        return self
 
 
 class ParquetDataset(Dataset):

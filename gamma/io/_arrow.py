@@ -5,98 +5,38 @@ Parquet or Feather/ArrowIPC datasets. It provides full support for "Hive" style
 partitioning.
 """
 
-import pyarrow as pa
-import pyarrow.dataset as pa_ds
-from pyarrow.compute import field, scalar
+from pyarrow.compute import field as pa_field
+from pyarrow.compute import scalar as pa_scalar
 
-from . import dispatch
-from ._fs import get_fs_path
 from ._types import Dataset
 
 
-def is_arrow_readable(ds: Dataset) -> bool:
-    return ds.format in ("parquet", "feather", "arrow")
-
-
-def is_arrow_writeable(ds: Dataset) -> bool:
-    return ds.format in ("parquet", "feather", "arrow")
-
-
-@dispatch
-def read_arrow_table(ds: Dataset) -> pa.Table:
-    return read_arrow_table(ds, ds.format, ds.protocol)
-
-
-@dispatch
-def read_arrow_table(ds: Dataset, fmt, protocol) -> pa.Table:
-    arrow_ds = _build_arrow_dataset(ds, fmt)
-
+def process_arrow_read_args(ds: Dataset):
+    """Process dataset reader arguments for pyarrow engine."""
     kwargs = {}
-    if ds.columns:
-        kwargs["columns"] = ds.columns
-
-    if ds.partitions:
-        _filter = scalar(True)
-        for key, val in ds.partitions.items():
-            _filter &= field(key) == val
-        kwargs["filter"] = _filter
-
-    kwargs.update(ds.args)
-    kwargs.update(ds.read_args)
-    return arrow_ds.to_table(**kwargs)
-
-
-@dispatch
-def write_arrow_table(tb: pa.Table, ds: Dataset) -> None:
-    return write_arrow_table(tb, ds, ds.format, ds.protocol)
-
-
-@dispatch
-def write_arrow_table(tb: pa.Table, ds: Dataset, fmt, protocol) -> None:
-    fs, path = get_fs_path(ds)
-
-    file_options = _get_pyarrow_dataset_writer_options(ds, fmt)
-
-    pa_ds.write_dataset(
-        data=tb,
-        partitioning=ds.partition_by if ds.partition_by else None,
-        partitioning_flavor="hive" if ds.partition_by else None,
-        format=fmt,
-        base_dir=path,
-        filesystem=fs,
-        file_options=file_options,
-        existing_data_behavior="delete_matching",
-        create_dir=True,
-    )
-
-
-def _get_pyarrow_dataset_writer_options(ds: Dataset, fmt):
-    kwargs = {}
-    if ds.compression:
-        kwargs["compression"] = ds.compression
-
-    kwargs.update(ds.args)
-    kwargs.update(ds.write_args)
-
-    match fmt:
-        case "parquet":
-            file_format = pa_ds.ParquetFileFormat()
-        case "arrow" | "feather":
-            file_format = pa_ds.IpcFileFormat()
-
-    return file_format.make_write_options(**kwargs)
-
-
-def _build_arrow_dataset(ds: Dataset, fmt):
-    fs, path = get_fs_path(ds)
-
-    # parse pyarrrow dataset arguments
-    kwargs = dict(source=path, filesystem=fs, format=fmt)
 
     if ds.partition_by:
         kwargs["partitioning"] = "hive"
 
-    # load it
-    arrow_ds = pa_ds.dataset(**kwargs)
+    if ds.partitions:
+        _filter = pa_scalar(True)
+        for key, val in ds.partitions.items():
+            _filter &= pa_field(key) == val
+        kwargs["filters"] = _filter
 
-    return arrow_ds
+    kwargs.update(ds.args)
+    kwargs.update(ds.read_args)
+    return kwargs
+
+
+def process_arrow_write_args(ds: Dataset):
+    """Process dataset write arguments for formats supported by PyArrow."""
+    kwargs = dict(compression=ds.compression)
+
+    if ds.partition_by:
+        kwargs["partition_cols"] = ds.partition_by
+
+    kwargs.update(ds.args)
+    kwargs.update(ds.write_args)
+
+    return kwargs

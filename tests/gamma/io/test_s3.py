@@ -10,7 +10,7 @@ import pytest
 
 from gamma.io import get_dataset, get_fs_path, read_pandas, write_pandas
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gamma.io")
 
 
 @pytest.fixture(scope="session")
