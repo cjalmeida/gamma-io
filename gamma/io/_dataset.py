@@ -15,7 +15,13 @@ logger = logging.getLogger("gamma.io")
 
 
 def get_dataset(
-    _layer: str, _name: str, *, args=None, columns=None, **params
+    _layer: str,
+    _name: str,
+    *,
+    config: dict | None = None,
+    args=None,
+    columns=None,
+    **params,
 ) -> Dataset:
     """Load a dataset entry from configuration.
 
@@ -26,14 +32,19 @@ def get_dataset(
         _name: the dataset name
 
     Keyword Args:
+        config: Optionally override config entry with your own.
         args: Optionally override reader/writer arguments
         columns: Optionally override the columns to load, if supported
         **params: partition specs or path params to pass to the location
 
     """
-    from .config import get_datasets_config
+    if config is None:
+        from .config import get_datasets_config
 
-    entry = get_datasets_config()[_layer][_name]
+        entry = get_datasets_config()[_layer][_name]
+    else:
+        entry = config
+
     dataset = Dataset(layer=_layer, name=_name, **entry)
     dataset.args.update(args or {})
 
