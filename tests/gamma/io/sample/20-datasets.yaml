@@ -36,6 +36,11 @@ datasets:
       compression: snappy # for Spark compat
       partition_by: [l1, l2]
 
+    customers_csv:
+      location: !j2 "file://{{ c._workdir }}/data/customers_csv"
+      format: csv
+      compression: zip
+
     customers_feather:
       location: !j2 "file://{{ c._workdir }}/data/customers_feather"
       format: feather
@@ -56,6 +61,12 @@ datasets:
 
     customers_s3:
       location: "s3://test-bucket/customers"
+      format: parquet
+      compression: snappy # for Spark compat
+      partition_by: [l1, l2]
+
+    customers_s3_copy:
+      location: "s3://test-bucket/customers_copy"
       format: parquet
       compression: snappy # for Spark compat
       partition_by: [l1, l2]

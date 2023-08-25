@@ -7,6 +7,7 @@ from random import choice
 import pandas as pd
 
 from gamma.io import (
+    copy_dataset,
     get_dataset,
     get_fs_path,
     list_partitions,
@@ -92,3 +93,12 @@ def test_read_write(io_config, caplog):
 
     # save as json
     write_pandas(df, "raw", "customers_excel")
+
+
+def test_copy_across(io_config):
+    ds1 = get_dataset("source", "customers_1k_plain")
+    ds2 = get_dataset("raw", "customers_csv")
+    copy_dataset(ds1, ds2)
+
+    fs, path = get_fs_path(ds2)
+    assert fs.isfile(path)

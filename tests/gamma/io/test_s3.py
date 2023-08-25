@@ -8,7 +8,7 @@ from random import choice
 import boto3
 import pytest
 
-from gamma.io import get_dataset, get_fs_path, read_pandas, write_pandas
+from gamma.io import copy_dataset, get_dataset, get_fs_path, read_pandas, write_pandas
 
 logger = logging.getLogger("gamma.io")
 
@@ -78,7 +78,7 @@ def test_s3_dataset(io_config):
     assert "s3" in fs.protocol
 
 
-def test_s3_read_write(io_config, bucket_test):
+def test_s3_read_write_copy(io_config, bucket_test):
     ds = get_dataset("raw", "customers_s3")
     fs, path = get_fs_path(ds)
 
@@ -96,4 +96,14 @@ def test_s3_read_write(io_config, bucket_test):
     df["l2"] = l2
 
     # write partitioned parquet
-    write_pandas(df, "raw", "customers")
+    write_pandas(df, "raw", "customers_s3")
+
+    # copy dataset
+    ds2 = get_dataset("raw", "customers_s3_copy")
+    _, path2 = get_fs_path(ds2)
+    copy_dataset(
+        ds,
+        ds2,
+    )
+
+    assert len(fs.find(path)) == len(fs.find(path2))

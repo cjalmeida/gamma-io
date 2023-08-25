@@ -40,7 +40,7 @@ test = [
     "openpyxl",
     "localstack",
     "sqlalchemy-utils",
-    "boto3"
+    "boto3",
 ]
 
 publish = ["twine"]
@@ -55,7 +55,8 @@ dev = [
     "ipykernel",
     "pdbpp",
     "localstack",
-    "awscli-local"
+    "awscli-local",
+    "tqdm",
 ]
 
 [tool.isort]
@@ -66,6 +67,12 @@ src = ["gamma"]
 select = ["E", "F", "D"]
 ignore = ["F811"]
 exclude = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+preview = true
+
 
 [tool.ruff.pydocstyle]
 convention = "google"

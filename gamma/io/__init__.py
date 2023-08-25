@@ -17,7 +17,7 @@ from .__version__ import __version__
 
 # Core features
 from ._dataset import get_dataset, get_dataset_location
-from ._fs import get_fs_path
+from ._fs import get_fs_path, copy_dataset
 from ._types import Dataset, PartitionException, DatasetException
 
 # Core dataframe libs - pandas / pyarrow
