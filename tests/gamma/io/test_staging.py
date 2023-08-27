@@ -78,3 +78,20 @@ def test_stage_read_write(io_config, df_cls, fmt, monkeypatch):
     fs.rm(path, recursive=True)
     fs, path = get_stage_reader_fs_path(ds)
     assert "/stage/" not in path
+
+
+def test_context(io_config):
+    ds = get_dataset("raw", f"customers_parquet")
+
+    # default disabled
+    assert not is_staging_enabled()
+
+    # writer should not return staged
+    _, path = get_stage_writer_fs_path(ds)
+    assert "/stage/" not in path
+
+    with use_staging():
+        assert is_staging_enabled()
+
+        _, path = get_stage_writer_fs_path(ds)
+        assert "/stage/" in path

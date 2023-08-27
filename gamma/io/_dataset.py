@@ -80,12 +80,12 @@ def get_dataset(
 
 
 @dispatch
-def read_dataset(cls, *args, **kwargs):
+def read_dataset(cls, *args, **kwargs):  # pragma: no cover
     raise NotImplementedError(f"Cannot read dataset returning type {cls}")
 
 
 @dispatch
-def write_dataset(data, *args, **kwargs):
+def write_dataset(data, *args, **kwargs):  # pragma: no cover
     raise NotImplementedError(f"Cannot write dataset with input type {type(data)}")
 
 
