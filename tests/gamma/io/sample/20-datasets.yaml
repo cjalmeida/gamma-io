@@ -14,6 +14,10 @@ filesystems:
     endpoint_url: http://localhost:4566
 
 datasets:
+  _staging:
+    use_staging: !env IO_TEST_STAGE|false
+    location: !j2 "file://{{ c._workdir }}/stage/{layer}/{name}/"
+
   source:
     customers_1k:
       location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.zip
@@ -55,7 +59,7 @@ datasets:
     # force as a single file
     customers_parquet_single:
       location: !j2 "file://{{ c._workdir }}/data/customers_parquet_single"
-      single_file: true
+      is_file: true
       format: parquet
       args:
         compression: zstd
@@ -78,7 +82,7 @@ datasets:
     # force as a single file
     customers_feather_single:
       location: !j2 "file://{{ c._workdir }}/data/customers_feather_single"
-      single_file: true
+      is_file: true
       format: feather
       args:
         compression: zstd
@@ -89,7 +93,7 @@ datasets:
       args:
         compression: gzip
 
-    customers_csv_plain:
+    customers_csv:
       location: !j2 "file://{{ c._workdir }}/data/customers.csv"
       format: csv
 

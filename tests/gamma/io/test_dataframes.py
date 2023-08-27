@@ -93,15 +93,17 @@ def test_parquet_feather(io_config, df_cls, fmt):
 
     # save/read as heuristic single-file feather, treating location as folder
     # also test the overriding get_dataset attribute
-    ds = get_dataset("raw", f"customers_{fmt}_single", single_file=None)
+    ds = get_dataset("raw", f"customers_{fmt}_single", is_file=None)
     write_dataset(df, ds)
     fs, path = get_fs_path(ds)
 
-    # path should still point to a file as we're not doing partitioning
-    assert fs.isfile(path)
+    # path should point to folder
+    assert fs.isdir(path)
 
-    # assert we have a nice name for the partition
-    assert path.endswith(f"/data.{fmt}")
+    # assert we have a nice name for the file
+    files = fs.ls(path)
+    assert len(files) == 1
+    assert files[0].endswith(f"/data.{fmt}")
 
     df2 = read_dataset(df_cls, ds)
     check_df_equal(df, df2)
@@ -128,10 +130,16 @@ def test_dynamic(io_config, df_cls):
     assert path.endswith(".csv")
 
 
-def test_copy_across(io_config):
+def test_copy_dataset(io_config):
     ds1 = get_dataset("source", "customers_1k_plain")
-    ds2 = get_dataset("raw", "customers_csv_plain")
+    ds2 = get_dataset("raw", "customers_csv")
+    ds3 = get_dataset("run", "customers_csv_plain", format="csv", ext="csv")
     copy_dataset(ds1, ds2)
 
     fs, path = get_fs_path(ds2)
+    assert fs.isfile(path)
+
+    copy_dataset(ds2, ds3)
+
+    fs, path = get_fs_path(ds3)
     assert fs.isfile(path)

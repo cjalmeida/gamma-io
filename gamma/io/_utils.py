@@ -5,6 +5,8 @@ import inspect
 import os.path
 import sys
 
+from fsspec import AbstractFileSystem
+
 
 def try_import(module_name: str):
     try:
@@ -49,3 +51,31 @@ def progress(*, total: int, force_tty=False):
 def get_parent(path: str) -> str:
     """Return the parent of the path."""
     return os.path.dirname(path.rstrip("/"))
+
+
+def get_single_file_in_folder(fs: AbstractFileSystem, path, ds=None):
+    from ._dataset import get_dataset_location
+    from ._types import DatasetException
+
+    def _raise(msg):  # helper for raising better exceptions
+        if ds:
+            loc = get_dataset_location(ds)
+            fullmsg = f"Dataset {ds.layer}/{ds.name}: location '{loc}' {msg}"
+            raise DatasetException(fullmsg, ds)
+        else:
+            fullmsg = f"(proto={fs.protocol}, path={loc}) {msg}"
+            raise DatasetException(fullmsg, ds)
+
+    if not fs.exists(path):
+        _raise("does not exist.")
+
+    files = fs.find(path)
+
+    if len(files) == 0:
+        _raise("refers to an empty directory.")
+
+    if len(files) > 1:
+        _raise(" contains many files and reader can only read a single file.")
+
+    path = files[0]
+    return path

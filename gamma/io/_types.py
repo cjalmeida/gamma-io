@@ -23,6 +23,11 @@ class MissingDependencyException(Exception):
     pass
 
 
+class StagingConf(BaseModel):
+    use_staging: bool = False
+    location: str | None
+
+
 class Dataset(BaseModel):
     """Structure for dataset entries."""
 
@@ -45,12 +50,14 @@ class Dataset(BaseModel):
     """The dataset storage protocol. If not provided in declarative
     configuration, it's inferred from location URL scheme."""
 
-    single_file: bool | None = None
-    """The default behavior for file-based datasets is to treat the 'location' URL as a
-    folder, except if the last part of the path contains a `.` and is not a partitioned
-    dataset. You can override this behavior by setting this field to either `True` to
-    force the location to be treated as a single file, or to `False` to force it being
-    treated as a folder."""
+    is_file: bool | None = None
+    """This forces the location to be treated as a file (`True`), as a folder (`False`)
+    or use heuristics to figure out. The heuristics rules are, in order:
+        - If `partition_by` is set, treat as folder.
+        - If path ends with a `/` (slash), treat as folder.
+        - If path last component (eg. filename) contains a `.` (dot) treat as file
+        - Otherwise, treat as folder.
+    """
 
     params: Optional[dict] = {}
     """Params to be interpolated in the location URI, or passed as SQL query parameters.

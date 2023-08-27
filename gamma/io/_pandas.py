@@ -1,13 +1,14 @@
 from typing import Literal, Type
 
 import pandas as pd
+from fsspec import AbstractFileSystem
 
 from . import dispatch
-from ._dataset import get_dataset
-from ._fs import get_fs_path
+from ._dataset import get_dataset, get_extension
 from ._logging import log_ds_read, log_ds_write
+from ._staging import get_stage_reader_fs_path, get_stage_writer_fs_path
 from ._types import ArrowFmt, Dataset
-from ._utils import remove_extra_arguments
+from ._utils import get_parent, get_single_file_in_folder, remove_extra_arguments
 
 
 @dispatch
@@ -49,24 +50,44 @@ def read_pandas(ds: Dataset, fmt, protocol):
 
     We assume the storage to be `fsspec` stream compatible (ie. single file).
     """
+    func = _get_reader(ds, fmt)
+    kwargs = _get_reader_arguments(ds, func)
+
+    # get a fs, path reference
+    fs, path = get_stage_reader_fs_path(ds)
+
+    path = _adjust_reader_path_pandas(ds, fs, path, fmt)
+
+    # stream and read data
+    with fs.open(path, "rb") as fo:
+        return func(fo, **kwargs)
+
+
+@dispatch
+def _adjust_reader_path_pandas(ds: Dataset, fs: AbstractFileSystem, path: str, fmt):
+    """Adjust the path argument to read a single file, as expected by most readers."""
+    if fs.isdir(path):
+        path = get_single_file_in_folder(fs, path, ds)
+
+    return path
+
+
+def _get_reader(ds: Dataset, fmt):
     # get reader function based on format name
     func = getattr(pd, f"read_{fmt}", None)
     if func is None:
         NotImplemented(f"Format not supported {fmt}")
+    return func
 
-    # get a fs, path reference
-    fs, path = get_fs_path(ds)
 
+def _get_reader_arguments(ds: Dataset, func):
     # process arguments
     kwargs = dict()
     kwargs.update(ds.args)
     kwargs.update(ds.read_args)
 
     remove_extra_arguments(func, kwargs)
-
-    # stream and read data
-    with fs.open(path, "rb") as fo:
-        return func(fo, **kwargs)
+    return kwargs
 
 
 @dispatch
@@ -111,15 +132,29 @@ def write_pandas(df: pd.DataFrame, ds: Dataset, fmt, protocol):
         NotImplemented(f"Format not supported {fmt}")
 
     # get a fs, path reference
-    fs, path = get_fs_path(ds)
+    fs, path = get_stage_writer_fs_path(ds)
 
     # process arguments
     kwargs = process_write_args(ds, fmt)
     remove_extra_arguments(func, kwargs)
 
+    if fs.exists(path):
+        fs.rm(path, recursive=True)
+
+    path = _adjust_writer_path_pandas(ds, fs, path, fmt)
+
     # write data as stream
+    fs.makedirs(get_parent(path), exist_ok=True)
     with fs.open(path, "wb") as fo:
         return func(df, fo, **kwargs)
+
+
+def _adjust_writer_path_pandas(ds, fs, path: str, fmt):
+    """Adjust the path when writing to folder."""
+    ext = get_extension(fmt)
+    if path.endswith("/"):
+        return f"{path}data.{ext}"
+    return path
 
 
 @dispatch

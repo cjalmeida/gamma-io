@@ -6,15 +6,15 @@ return a `(fs: FileSystem, path: str)` tuple.
 
 import re
 import shutil
-from pathlib import Path
 from typing import Literal
 from urllib.parse import SplitResult, urlsplit
 
 import fsspec
+import fsspec.core
 
 from . import dispatch
 from ._types import Dataset, DatasetException
-from ._utils import progress
+from ._utils import get_parent, progress
 from .config import get_filesystems_config
 
 FSPathType = tuple[fsspec.AbstractFileSystem, str]
@@ -61,14 +61,18 @@ def get_fs_options(location: str) -> tuple[SplitResult, dict]:
 
 
 @dispatch
-def get_fs_path(proto, location) -> FSPathType:
+def get_fs_path(proto, location: str) -> FSPathType:
     """Fallback when a protocol has no specialization."""
     _, options = get_fs_options(location)
-    protocol = options.pop("protocol")
+    options.pop("protocol")
 
-    fs, _, (path,) = fsspec.get_fs_token_paths(
-        location, protocol=protocol, storage_options=options
-    )
+    fs, path = fsspec.core.url_to_fs(location, **options)
+
+    # keep promise of ending directories with a trailing slash as they're sometimes
+    # removed by the url_to_fs call
+
+    if location.endswith("/") and not path.endswith("/"):
+        path = path.rstrip("/") + "/"
 
     return fs, path
 
@@ -78,32 +82,21 @@ def get_fs_path(ds: Dataset) -> FSPathType:
     from ._dataset import get_dataset_location
 
     loc = get_dataset_location(ds)
-    loc = _adjust_single_file_location(ds, loc)
     return get_fs_path(loc)
 
 
 @dispatch
-def get_fs_path(adj_location: str):
+def get_fs_path(location: str):
     # delegate to protocol specific implementation
-    _, fsconfig = get_fs_options(adj_location)
+    _, fsconfig = get_fs_options(location)
     proto = fsconfig["protocol"]
-    return get_fs_path(proto, adj_location)
+    return get_fs_path(proto, location)
 
 
 @dispatch
-def get_fs_path(proto: Literal["file"], adj_location: str):
-    u, config = get_fs_options(adj_location)
-    config.setdefault("auto_mkdir", True)
-
-    path = Path(config.pop("path", "/"))
-    lpath = path.absolute() / (u.hostname or "") / u.path.lstrip("/")
-    return (fsspec.filesystem(**config), str(lpath))
-
-
-@dispatch
-def get_fs_path(proto: Literal["https"], adj_location: str):
-    _, config = get_fs_options(adj_location)
-    return (fsspec.filesystem(**config), adj_location)
+def get_fs_path(proto: Literal["https"], location: str):
+    _, config = get_fs_options(location)
+    return (fsspec.filesystem(**config), location)
 
 
 @dispatch
@@ -158,6 +151,7 @@ def copy_dataset(src: Dataset, dst: Dataset, proto):
     bar_update, bar_close = progress(total=len(files))
     for src_file in files:
         dst_file = dst_path + strip_base(src_path, src_file)
+        dst_fs.makedirs(get_parent(dst_file), exist_ok=True)
         with (
             src_fs.open(src_file, "rb") as src_fo,
             dst_fs.open(dst_file, "wb") as dst_fo,
@@ -199,35 +193,30 @@ def copy_dataset(src: Dataset, dst: Dataset, proto: Literal["s3"]):
 def treat_loc_as_folder(ds: Dataset) -> bool:
     """Return if the dataset location should be treated as a folder.
 
-    See `ds.single_file` for the heuristic behavior.
+    See `ds.is_file` for the heuristic behavior.
     """
     from ._dataset import get_dataset_location
 
     return treat_loc_as_folder(ds, get_dataset_location(ds))
 
 
-@dispatch
 def treat_loc_as_folder(ds: Dataset, path: str) -> bool:
-    single_file = ds.single_file
-    if single_file is None:
+    is_file = ds.is_file
+    if is_file is None:
+        _, last_part = path.rsplit("/", 1)
+
         # use heuristic
-
         if ds.partition_by:
-            single_file = False
+            is_file = False
+        elif path.endswith("/"):
+            is_file = False
+        elif "." in last_part:
+            is_file = True
         else:
-            _, last_part = path.rsplit("/", 1)
-            single_file = "." in last_part
+            is_file = False
 
-    if single_file and ds.partition_by:
-        msg = f"Partitioned dataset {ds} cannot be `single_file`."
+    if is_file and ds.partition_by:
+        msg = f"Partitioned dataset {ds} cannot have `is_file == True`."
         raise DatasetException(msg, ds)
 
-    return not single_file
-
-
-def _adjust_single_file_location(ds: Dataset, loc: str) -> str:
-    """Adjust location to single-file datasets when treating location as folders."""
-    if treat_loc_as_folder(ds, loc) and not ds.partition_by:
-        return loc.rstrip("/") + f"/data.{ds.format}"
-
-    return loc
+    return not is_file

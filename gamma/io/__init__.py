@@ -19,6 +19,7 @@ from .__version__ import __version__
 from ._dataset import get_dataset, get_dataset_location, read_dataset, write_dataset
 from ._fs import get_fs_path, copy_dataset
 from ._types import Dataset, PartitionException, DatasetException
+from ._staging import is_staging_enabled
 
 # Core dataframe libs - pandas / pyarrow
 from ._pandas import read_pandas, write_pandas, list_partitions

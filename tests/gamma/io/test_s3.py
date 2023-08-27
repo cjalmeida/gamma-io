@@ -74,7 +74,7 @@ def bucket_test(localstack):
 def test_s3_dataset(io_config):
     ds = get_dataset("raw", "customers_s3")
     fs, path = get_fs_path(ds)
-    assert path == "test-bucket/customers"
+    assert path == "test-bucket/customers/"
     assert "s3" in fs.protocol
 
 

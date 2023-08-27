@@ -2,7 +2,7 @@
 
 
 import logging
-from typing import Tuple
+from typing import Literal, Tuple
 
 import fsspec
 
@@ -27,9 +27,9 @@ def get_dataset(
     configuration in the keyword arguments as needed.
 
     Keyword arguments can override in the dataset configuration specification (eg.
-    `location`, `format`, `args`, etc.). Note `format` can only be overridden
-    if there's a `_dynamic` entry in layer config; `layer` and  `location` cannot be
-    overridden. See [gamma.io.Dataset][] for the fields.
+    `location`, `format`, `args`, etc.). Note `format` can only be overridden if there's
+    a `_dynamic` entry in layer config; `layer` and  `location` cannot be overridden.
+    See [gamma.io.Dataset][] for the fields.
 
     For `params`, `args`, `*_args`, fields, provided keyword arguments will be merged
     with existing config.
@@ -38,6 +38,13 @@ def get_dataset(
 
     Any keyword argument that match a partition column (see
     [gamma.io.Dataset#partition_by][]) will be treated as a partition key.
+
+    **Staging behavior**
+
+    If datasets configuration entry `_staging.use_stage` is set to `True`, the writer
+    will write data to `_staging.location` location. The reader will try to read first
+    from staging and, if not data is available, it will read from the original dataset
+    location.
 
     Args:
         layer: The layer name
@@ -123,21 +130,57 @@ def _resolve_ds_config(layer: str, name: str, kwargs: dict) -> dict:
     return cfg, dynamic
 
 
-def get_dataset_location(ds: Dataset) -> str:
+def get_dataset_location(ds: Dataset, staging: bool = False) -> str:
     """Get the dataset location with path params applied.
 
     You can use any dataset field or entry in dataset `params` dict as location params.
     The raw location string is interpolated using `str.format`.
+
+    We use the `is_file` heuristics to decide if we should treat the path as file or
+    folder. If folder, we canonicalize by adding a trailing slash `/` to the path.
+
+    Args:
+        ds: The dataset to resolve the location.
+        staging: If `True`, return the staging location instead.
     """
+    from ._fs import treat_loc_as_folder
+    from ._staging import get_staging_location
+
     params = dict()
     params.update(ds.model_dump())
     params.update(ds.params)
 
     try:
-        path = ds.location.format(**params)
-        return path
+        if staging:
+            loc = get_staging_location().format(**params)
+        else:
+            loc = ds.location.format(**params)
+        if treat_loc_as_folder(ds, loc):
+            loc = loc.rstrip("/") + "/"
+        return loc
+
     except KeyError as ex:  # pragma: no cover
         raise KeyError(
             f"Missing Dataset param '{ex.args[0]}' while trying to render location "
             f"URI: {ds.location}"
         )
+
+
+@dispatch
+def get_extension(fmt: Literal["excel"]) -> str:
+    return "xlsx"
+
+
+@dispatch
+def get_extension(fmt: Literal["pickle"]) -> str:
+    return "pkl"
+
+
+@dispatch
+def get_extension(fmt: str) -> str:
+    return fmt
+
+
+def adjust_single_file(ds: Dataset, path: str) -> str:
+    ext = get_extension(ds.format)
+    return f"{path}/data.{ext}"
