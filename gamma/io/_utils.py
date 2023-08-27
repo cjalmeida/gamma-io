@@ -2,6 +2,7 @@
 
 import importlib
 import inspect
+import os.path
 import sys
 
 
@@ -15,6 +16,14 @@ def try_import(module_name: str):
 def func_arguments(f) -> list[str]:
     spec = inspect.getfullargspec(f)
     return set(spec.args + spec.kwonlyargs)
+
+
+def remove_extra_arguments(f, kwargs: dict) -> None:
+    """Inplace remove extra keys from `kwargs` for a given function."""
+    fargs = func_arguments(f)
+    for name in list(kwargs):
+        if name not in fargs:
+            del kwargs[name]
 
 
 def progress(*, total: int, force_tty=False):
@@ -35,3 +44,8 @@ def progress(*, total: int, force_tty=False):
 
     # not installed, return no-op
     return lambda: None, lambda: None
+
+
+def get_parent(path: str) -> str:
+    """Return the parent of the path."""
+    return os.path.dirname(path.rstrip("/"))

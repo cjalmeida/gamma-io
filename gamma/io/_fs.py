@@ -13,7 +13,7 @@ from urllib.parse import SplitResult, urlsplit
 import fsspec
 
 from . import dispatch
-from ._types import Dataset
+from ._types import Dataset, DatasetException
 from ._utils import progress
 from .config import get_filesystems_config
 
@@ -77,20 +77,22 @@ def get_fs_path(proto, location) -> FSPathType:
 def get_fs_path(ds: Dataset) -> FSPathType:
     from ._dataset import get_dataset_location
 
-    return get_fs_path(get_dataset_location(ds))
+    loc = get_dataset_location(ds)
+    loc = _adjust_single_file_location(ds, loc)
+    return get_fs_path(loc)
 
 
 @dispatch
-def get_fs_path(location: str):
+def get_fs_path(adj_location: str):
     # delegate to protocol specific implementation
-    _, fsconfig = get_fs_options(location)
+    _, fsconfig = get_fs_options(adj_location)
     proto = fsconfig["protocol"]
-    return get_fs_path(proto, location)
+    return get_fs_path(proto, adj_location)
 
 
 @dispatch
-def get_fs_path(proto: Literal["file"], location: str):
-    u, config = get_fs_options(location)
+def get_fs_path(proto: Literal["file"], adj_location: str):
+    u, config = get_fs_options(adj_location)
     config.setdefault("auto_mkdir", True)
 
     path = Path(config.pop("path", "/"))
@@ -99,9 +101,9 @@ def get_fs_path(proto: Literal["file"], location: str):
 
 
 @dispatch
-def get_fs_path(proto: Literal["https"], location: str):
-    _, config = get_fs_options(location)
-    return (fsspec.filesystem(**config), location)
+def get_fs_path(proto: Literal["https"], adj_location: str):
+    _, config = get_fs_options(adj_location)
+    return (fsspec.filesystem(**config), adj_location)
 
 
 @dispatch
@@ -191,3 +193,41 @@ def copy_dataset(src: Dataset, dst: Dataset, proto: Literal["s3"]):
 
     # use fast copy
     src_fs.copy(src_path, dst_path, recursive=True)
+
+
+@dispatch
+def treat_loc_as_folder(ds: Dataset) -> bool:
+    """Return if the dataset location should be treated as a folder.
+
+    See `ds.single_file` for the heuristic behavior.
+    """
+    from ._dataset import get_dataset_location
+
+    return treat_loc_as_folder(ds, get_dataset_location(ds))
+
+
+@dispatch
+def treat_loc_as_folder(ds: Dataset, path: str) -> bool:
+    single_file = ds.single_file
+    if single_file is None:
+        # use heuristic
+
+        if ds.partition_by:
+            single_file = False
+        else:
+            _, last_part = path.rsplit("/", 1)
+            single_file = "." in last_part
+
+    if single_file and ds.partition_by:
+        msg = f"Partitioned dataset {ds} cannot be `single_file`."
+        raise DatasetException(msg, ds)
+
+    return not single_file
+
+
+def _adjust_single_file_location(ds: Dataset, loc: str) -> str:
+    """Adjust location to single-file datasets when treating location as folders."""
+    if treat_loc_as_folder(ds, loc) and not ds.partition_by:
+        return loc.rstrip("/") + f"/data.{ds.format}"
+
+    return loc

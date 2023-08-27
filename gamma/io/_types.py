@@ -1,8 +1,8 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
-PyArrowFmt = Literal["parquet"] | Literal["feather"] | Literal["arrow"] | Literal["ipc"]
+ArrowFmt = Literal["feather"] | Literal["arrow"] | Literal["ipc"]
 
 FEATHER_STRINGS = set(["feather", "arrow", "ipc"])
 
@@ -33,7 +33,10 @@ class Dataset(BaseModel):
     """Dataset name, unique in a layer"""
 
     location: str
-    """URL representing the location of this library"""
+    """URL representing the location of this dataset. The location may have parameters
+    enclosed in single curly brackets (eg. `/path/to/{param}`). These params may
+    reference fields in this dataset struct (eg. `layer`, `name`) or arguments to be
+    provided during `Dataset` instantiation via [get_dataset][]"""
 
     format: str
     """The dataset storage format."""
@@ -41,6 +44,13 @@ class Dataset(BaseModel):
     protocol: str | None = None
     """The dataset storage protocol. If not provided in declarative
     configuration, it's inferred from location URL scheme."""
+
+    single_file: bool | None = None
+    """The default behavior for file-based datasets is to treat the 'location' URL as a
+    folder, except if the last part of the path contains a `.` and is not a partitioned
+    dataset. You can override this behavior by setting this field to either `True` to
+    force the location to be treated as a single file, or to `False` to force it being
+    treated as a folder."""
 
     params: Optional[dict] = {}
     """Params to be interpolated in the location URI, or passed as SQL query parameters.
@@ -58,17 +68,13 @@ class Dataset(BaseModel):
     engine_args: Optional[dict] = {}
     """Extra arguments passed to SQLAlchemy `create_engine`."""
 
-    #: Limit the columns to load for loaders that support this feature
-    columns: Optional[list[str]] = None
-
     #: Partition declaration if supported
     partition_by: Optional[list[str]] = []
 
     #: Partition values
     partitions: Optional[dict] = {}
 
-    compression: Optional[str] = None
-    """Compression, if supported by the loader/format."""
+    model_config = ConfigDict(extra="forbid")
 
     @model_validator(mode="after")
     def _parse_protocol(self) -> "Dataset":

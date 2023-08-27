@@ -42,7 +42,7 @@ def test_sql_read_write(io_config, caplog):
     pd.testing.assert_frame_equal(df, df2)
 
     # check we can read a parameterized SQL query
-    df3 = read_pandas("raw", "customers_sql_query", name="andr%")
+    df3 = read_pandas("raw", "customers_sql_query", first_name="andr%")
 
     for _name in df3["First Name"].tolist():
         assert "andr" in _name.lower()

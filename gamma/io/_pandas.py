@@ -1,14 +1,33 @@
-from typing import Literal
+from typing import Literal, Type
 
 import pandas as pd
 
 from . import dispatch
-from ._arrow import process_arrow_read_args, process_arrow_write_args
 from ._dataset import get_dataset
 from ._fs import get_fs_path
 from ._logging import log_ds_read, log_ds_write
-from ._types import FEATHER_STRINGS, Dataset, PyArrowFmt
-from ._utils import func_arguments
+from ._types import ArrowFmt, Dataset
+from ._utils import remove_extra_arguments
+
+
+@dispatch
+def read_dataset(cls: Type[pd.DataFrame], *args, **kwargs) -> pd.DataFrame:
+    return read_pandas(*args, **kwargs)
+
+
+@dispatch
+def read_dataset(cls: Type[pd.DataFrame], ds: Dataset) -> pd.DataFrame:
+    return read_pandas(ds)
+
+
+@dispatch
+def write_dataset(df: pd.DataFrame, *args, **kwargs) -> None:
+    return write_pandas(df, *args, **kwargs)
+
+
+@dispatch
+def write_dataset(df: pd.DataFrame, ds: Dataset) -> None:
+    return write_pandas(df, ds)
 
 
 @dispatch
@@ -43,13 +62,7 @@ def read_pandas(ds: Dataset, fmt, protocol):
     kwargs.update(ds.args)
     kwargs.update(ds.read_args)
 
-    fargs = func_arguments(func)
-
-    if "compression" in fargs:
-        kwargs["compression"] = ds.compression
-
-    if "columns" in fargs:
-        kwargs["columns"] = ds.columns
+    remove_extra_arguments(func, kwargs)
 
     # stream and read data
     with fs.open(path, "rb") as fo:
@@ -57,25 +70,20 @@ def read_pandas(ds: Dataset, fmt, protocol):
 
 
 @dispatch
-def read_pandas(ds: Dataset, fmt: PyArrowFmt, protocol):
-    """Specialized support for PyArrow datasets."""
-    # get a fs, path reference
-    fs, path = get_fs_path(ds)
+def read_pandas(ds: Dataset, fmt: Literal["parquet"], protocol) -> pd.DataFrame:
+    """Specialized support for Parquet datasets."""
+    from ._arrow import read_parquet
 
-    # process arguments
-    kwargs = process_arrow_read_args(ds)
-    kwargs["engine"] = "pyarrow"
-    kwargs["filesystem"] = fs
-    kwargs["path"] = path
+    tbl = read_parquet(ds)
+    return tbl.to_pandas()
 
-    # stream and read data
-    match fmt:
-        case "parquet":
-            return pd.read_parquet(**kwargs)
-        case f if f in FEATHER_STRINGS:
-            return pd.read_feather(**kwargs)
-        case _:
-            raise NotImplementedError(f"Format not supported {fmt}")
+
+@dispatch
+def read_pandas(ds: Dataset, fmt: ArrowFmt, protocol) -> pd.DataFrame:
+    from ._arrow import read_feather
+
+    tbl = read_feather(ds)
+    return tbl.to_pandas()
 
 
 @dispatch
@@ -101,65 +109,52 @@ def write_pandas(df: pd.DataFrame, ds: Dataset, fmt, protocol):
     func = getattr(pd.DataFrame, f"to_{fmt}", None)
     if func is None:
         NotImplemented(f"Format not supported {fmt}")
-    fargs = func_arguments(func)
 
     # get a fs, path reference
     fs, path = get_fs_path(ds)
 
     # process arguments
-    kwargs = process_write_args(ds, fmt, fargs)
+    kwargs = process_write_args(ds, fmt)
+    remove_extra_arguments(func, kwargs)
 
-    # stream and read data
+    # write data as stream
     with fs.open(path, "wb") as fo:
         return func(df, fo, **kwargs)
 
 
 @dispatch
-def write_pandas(df: pd.DataFrame, ds: Dataset, fmt: PyArrowFmt, protocol) -> None:
-    # get a fs, path reference
-    fs, path = get_fs_path(ds)
+def write_pandas(df: pd.DataFrame, ds: Dataset, fmt: Literal["parquet"], proto) -> None:
+    import pyarrow as pa
 
-    # process arguments
-    kwargs = process_arrow_write_args(ds)
-    kwargs["index"] = False
-    kwargs["engine"] = "pyarrow"
-    kwargs["path"] = path
-    kwargs["filesystem"] = fs
+    from ._arrow import write_parquet
 
-    match fmt:
-        case "parquet":
-            df.to_parquet(**kwargs)
-        case f if f in FEATHER_STRINGS:
-            df.to_feather(**kwargs)
-        case _:
-            raise NotImplementedError(f"Format not supported {fmt}")
+    tbl = pa.Table.from_pandas(df, preserve_index=False)
+    write_parquet(tbl, ds)
 
 
 @dispatch
-def process_write_args(ds: Dataset, fmt, fargs):
-    """Process dataset writer arguments.
+def write_pandas(df: pd.DataFrame, ds: Dataset, fmt: ArrowFmt, proto) -> None:
+    import pyarrow as pa
 
-    Currently `compression`, `columns` and `**write_args`
-    """
+    from ._arrow import write_feather
+
+    tbl = pa.Table.from_pandas(df, preserve_index=False)
+    write_feather(tbl, ds)
+
+
+@dispatch
+def process_write_args(ds: Dataset, fmt):
+    """Process dataset writer arguments."""
     kwargs = {}
-    if "compression" in fargs and ds.compression is not None:
-        kwargs["compression"] = ds.compression
-
-    if "columsn in fargs" and ds.columns:
-        kwargs["columns"] = ds.compression
-
     kwargs.update(ds.args)
     kwargs.update(ds.write_args)
     return kwargs
 
 
 @dispatch
-def process_write_args(ds: Dataset, fmt: Literal["csv"], fargs):
-    """Process dataset writer arguments for CSVs.
-
-    Currently `compression`, `columns` and `**write_args`
-    """
-    kwargs = dict(index=False, compression=ds.compression, columns=ds.columns)
+def process_write_args(ds: Dataset, fmt: Literal["csv"]):
+    """Process dataset writer arguments for CSVs."""
+    kwargs = dict(index=False)
     kwargs.update(ds.args)
     kwargs.update(ds.write_args)
     return kwargs
@@ -172,6 +167,16 @@ def list_partitions(*args, **kwargs) -> pd.DataFrame:
     Return a Dataframe with the available partitions and size.
     """
     ds = get_dataset(*args, **kwargs)
-    ds.columns = ds.partition_by
+    return list_partitions(ds)
+
+
+@dispatch
+def list_partitions(ds: Dataset, **kwargs) -> pd.DataFrame:
+    """List the existing partition set.
+
+    Return a Dataframe with the available partitions and size.
+    """
+    ds = get_dataset(layer=ds.layer, name=ds.name, **kwargs)
+    ds.args.update({"columns": ds.partition_by})
 
     return read_pandas(ds).drop_duplicates()

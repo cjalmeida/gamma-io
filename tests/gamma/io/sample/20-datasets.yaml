@@ -18,7 +18,8 @@ datasets:
     customers_1k:
       location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.zip
       format: csv
-      compression: zip
+      args:
+        compression: zip
 
     customers_1k_plain:
       location: https://github.com/cjalmeida/gamma-io/raw/main/samples/customers-1000.csv
@@ -27,29 +28,66 @@ datasets:
     customers_1k_local:
       location: !j2 "file://{{c._project}}/samples/customers-1000.zip"
       format: csv
-      compression: zip
+      args:
+        compression: zip
+
+    customers_1k_local_plain:
+      location: !j2 "file://{{c._project}}/samples/customers-1000.csv"
+      format: csv
+
+  run:
+    # this should be treated as a single file
+    _dynamic:
+      location: !j2 "file://{{ c._workdir }}/data/run/{name}.{ext}"
+      format: parquet
+      params:
+        ext: parquet
 
   raw:
-    customers:
-      location: !j2 "file://{{ c._workdir }}/data/customers"
+    # partitioned
+    customers_parquet:
+      location: !j2 "file://{{ c._workdir }}/data/customers_parquet"
       format: parquet
-      compression: snappy # for Spark compat
       partition_by: [l1, l2]
+      args:
+        compression: zstd
 
-    customers_csv:
-      location: !j2 "file://{{ c._workdir }}/data/customers_csv"
-      format: csv
-      compression: zip
+    # force as a single file
+    customers_parquet_single:
+      location: !j2 "file://{{ c._workdir }}/data/customers_parquet_single"
+      single_file: true
+      format: parquet
+      args:
+        compression: zstd
 
+    # partitioned
     customers_feather:
       location: !j2 "file://{{ c._workdir }}/data/customers_feather"
       format: feather
-      compression: zstd
+      partition_by: [l1, l2]
+      args:
+        compression: zstd
 
-    customers_csv:
+    # treated as a single file via heuristics
+    customers_csv_zip:
+      location: !j2 "file://{{ c._workdir }}/data/customers.csv.zip"
+      format: csv
+      args:
+        compression: zip
+
+    # force as a single file
+    customers_feather_single:
+      location: !j2 "file://{{ c._workdir }}/data/customers_feather_single"
+      single_file: true
+      format: feather
+      args:
+        compression: zstd
+
+    customers_csv_gz:
       location: !j2 "file://{{ c._workdir }}/data/customers.csv.gz"
       format: csv
-      compression: gzip
+      args:
+        compression: gzip
 
     customers_csv_plain:
       location: !j2 "file://{{ c._workdir }}/data/customers.csv"
@@ -62,14 +100,16 @@ datasets:
     customers_s3:
       location: "s3://test-bucket/customers"
       format: parquet
-      compression: snappy # for Spark compat
       partition_by: [l1, l2]
+      args:
+        compression: snappy # for Spark compat
 
     customers_s3_copy:
       location: "s3://test-bucket/customers_copy"
       format: parquet
-      compression: snappy # for Spark compat
       partition_by: [l1, l2]
+      args:
+        compression: snappy # for Spark compat
 
     customers_sql_table:
       # format for sql connections is `sql:{sqlalchemy url}`
@@ -79,9 +119,9 @@ datasets:
       # allow writing a full dataframe as table
       format: sql_table
 
-      # read/write arguments. 'name' is mandatory for sql_table
+      # read/write arguments. 'table_name' is mandatory for sql_table
       args:
-        name: customers
+        table_name: customers
 
       # SQLAlchemy create_engine conn arguments
       engine_args:

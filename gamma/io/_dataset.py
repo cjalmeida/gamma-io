@@ -6,7 +6,8 @@ from typing import Tuple
 
 import fsspec
 
-from ._types import Dataset, PartitionException
+from . import dispatch
+from ._types import Dataset
 
 # type alias
 FSPathType = Tuple[fsspec.AbstractFileSystem, str]
@@ -15,86 +16,126 @@ logger = logging.getLogger("gamma.io")
 
 
 def get_dataset(
-    _layer: str,
-    _name: str,
-    *,
-    config: dict | None = None,
-    args=None,
-    columns=None,
-    **params,
+    layer: str,
+    name: str,
+    **kwargs,
 ) -> Dataset:
     """Load a dataset entry from configuration.
 
-    You can pass both partition filters or path parameters as keyword args.
+    If the layer has a `_dynamic` dataset, you can create "dynamic" datasets using the
+    values inside the `_dynamic` configuration block as defaults, and override the
+    configuration in the keyword arguments as needed.
+
+    Keyword arguments can override in the dataset configuration specification (eg.
+    `location`, `format`, `args`, etc.). Note `format` can only be overridden
+    if there's a `_dynamic` entry in layer config; `layer` and  `location` cannot be
+    overridden. See [gamma.io.Dataset][] for the fields.
+
+    For `params`, `args`, `*_args`, fields, provided keyword arguments will be merged
+    with existing config.
+
+    All keyword arguments can be used to dynamically render the `location` field.
+
+    Any keyword argument that match a partition column (see
+    [gamma.io.Dataset#partition_by][]) will be treated as a partition key.
 
     Args:
-        _layer: the layer name
-        _name: the dataset name
-
-    Keyword Args:
-        config: Optionally override config entry with your own.
-        args: Optionally override reader/writer arguments
-        columns: Optionally override the columns to load, if supported
-        **params: partition specs or path params to pass to the location
-
+        layer: The layer name
+        name: The dataset name
+        **kwargs: See above
     """
-    if config is None:
-        from .config import get_datasets_config
+    cfg, _ = _resolve_ds_config(layer, name, kwargs)
 
-        entry = get_datasets_config()[_layer][_name]
-    else:
-        entry = config
+    fields = set(Dataset.model_fields)
 
-    dataset = Dataset(layer=_layer, name=_name, **entry)
-    dataset.args.update(args or {})
+    # handle dataset field overrides
+    for key in list(kwargs):
+        if key in fields:
+            if key in ("args", "params") or key.endswith("_args"):
+                # merge args fields
+                cfg.setdefault(key, {}).update(kwargs[key] or {})
+            else:
+                # simple replace
+                cfg[key] = kwargs[key]
 
-    # parse partitions in params
-    for part in list(params):
+    # instantiate the dataset
+    dataset = Dataset(layer=layer, name=name, **cfg)
+
+    # handle partitions in params
+    for part in list(kwargs):
         if part in dataset.partition_by:
-            dataset.partitions[part] = params.pop(part)
+            dataset.partitions[part] = kwargs[part]
 
-    _validate_partitions(dataset)
-
-    # treat the rest as location params
-    dataset.params.update(params)
-
-    if columns:
-        dataset.columns = columns
+    # kwargs as partition params
+    dataset.params.update(kwargs)
 
     return dataset
 
 
-def _validate_partitions(ds: Dataset) -> None:
-    """Ensure we have no holes in the provided partitions."""
-    matches = [part in ds.partitions for part in ds.partition_by]
+@dispatch
+def read_dataset(cls, *args, **kwargs):
+    raise NotImplementedError(f"Cannot read dataset returning type {cls}")
 
-    # iterating checking for invalid matches
-    allow_match = True
-    invalid = None
-    for i, match in enumerate(matches):
-        if match and allow_match:
-            continue
-        elif match and not allow_match:
-            invalid = i
-            break
-        elif not match:
-            allow_match = False
-            continue
 
-    if invalid is not None:
-        msg = (
-            f"Incorrect partition provided. We got {ds.partitions} while expecting "
-            f"the sequence {ds.partition_by} for dataset '{ds.layer}.{ds.name}'"
+@dispatch
+def write_dataset(data, *args, **kwargs):
+    raise NotImplementedError(f"Cannot write dataset with input type {type(data)}")
+
+
+def _resolve_ds_config(layer: str, name: str, kwargs: dict) -> dict:
+    from .config import get_dataset_config
+
+    dynamic = False
+
+    # try configured dataset
+    try:
+        cfg = get_dataset_config(layer, name)
+    except KeyError:
+        cfg = None
+
+    # try dynamic dataset
+    try:
+        if cfg is None:
+            cfg = get_dataset_config(layer, "_dynamic")
+            dynamic = True
+    except KeyError:
+        cfg = None
+
+    if cfg is None:
+        raise ValueError(
+            f"Dataset named '{layer}/{name} not found in configuration and layer "
+            f"'{layer}' does not allow dynamic datasets by providing a '_dynamic' "
+            "entry."
         )
-        raise PartitionException(msg, ds)
+
+    # do some checks
+
+    if "location" in kwargs:
+        raise ValueError(
+            "Dataset 'location' cannot be overridden, use {params} to customize it."
+        )
+
+    if not dynamic and "format" in kwargs:
+        raise ValueError(
+            "Dataset 'format' can only be overridden for dynamic datasets."
+        )
+
+    return cfg, dynamic
 
 
 def get_dataset_location(ds: Dataset) -> str:
-    """Get the dataset location with path params applied."""
-    try:
-        base_path = ds.location.format(**ds.params)
-        return base_path
+    """Get the dataset location with path params applied.
 
+    You can use any dataset field or entry in dataset `params` dict as location params.
+    The raw location string is interpolated using `str.format`.
+    """
+    params = dict()
+    params.update(ds.model_dump())
+    params.update(ds.params)
+
+    try:
+        path = ds.location.format(**params)
+        return path
     except KeyError as ex:  # pragma: no cover
         raise KeyError(
             f"Missing Dataset param '{ex.args[0]}' while trying to render location "
