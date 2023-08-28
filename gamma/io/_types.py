@@ -25,7 +25,7 @@ class MissingDependencyException(Exception):
 
 class StagingConf(BaseModel):
     use_staging: bool = False
-    location: str | None
+    location: str | None = None
 
 
 class Dataset(BaseModel):

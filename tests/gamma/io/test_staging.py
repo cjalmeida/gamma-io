@@ -12,6 +12,7 @@ from gamma.io import (
 from gamma.io._staging import (
     get_stage_reader_fs_path,
     get_stage_writer_fs_path,
+    get_staging_config,
     use_staging,
 )
 
@@ -95,3 +96,16 @@ def test_context(io_config):
 
         _, path = get_stage_writer_fs_path(ds)
         assert "/stage/" in path
+
+
+def test_no_config():
+    from gamma.config import RootConfig, get_config, to_dict
+    from gamma.config.globalconfig import set_config
+
+    cfg_str = """
+    datasets: {}
+    """
+
+    cfg = RootConfig("dummy", cfg_str)
+    set_config(cfg)
+    assert get_staging_config()
