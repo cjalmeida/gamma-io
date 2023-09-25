@@ -41,6 +41,7 @@ test = [
     "localstack",
     "sqlalchemy-utils",
     "boto3",
+    "tox-pdm>=0.6.1",
 ]
 
 publish = ["twine"]
@@ -80,6 +81,7 @@ convention = "google"
 [tool.pytest.ini_options]
 addopts = "--import-mode importlib --cov=gamma.io --cov-report term --cov-report xml:cov.xml"
 testpaths = "tests"
+pythonpath = ["."]
 
 [tool.pdm.version]
 source = "file"
